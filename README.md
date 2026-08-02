@@ -543,7 +543,9 @@ atributos del distrito, y no son estables entre descargas.
 
 ## Suite de validación
 
-51 tests, en CI en cada push, que rompen el build ante cualquier violación:
+51 tests que rompen el build ante cualquier violación. En cada push se validan
+las capas publicadas; la reconstrucción completa desde el INEI corre por cron y
+a demanda, para que una caída de su servidor no bloquee el desarrollo.
 
 - **conteos** 1892 / 196 / 25, leídos de `config.yml`, no literales
 - **ubigeos** únicos y bien formados (6 / 4 / 2 dígitos, con cero a la izquierda)
@@ -557,7 +559,8 @@ atributos del distrito, y no son estables entre descargas.
   reporte del propio build
 - **CRS** de salida EPSG:4326; toda área y longitud se calcula en un CRS
   proyectado equivalente‑área (`ESRI:102033`), nunca en grados
-- **byte‑estabilidad**: CI reconstruye y compara byte a byte
+- **byte‑estabilidad**: la reconstrucción compara byte a byte contra la corrida
+  anterior
 
 La tolerancia de conservación de área **no es una constante**: se deriva como
 `perímetro × tamaño de celda`. Publicar con precisión de 1.1 cm mueve cada

@@ -3,7 +3,9 @@ name: publicar mapa interactivo
 # Publica ejemplos/mapa_web.html en GitHub Pages, con las capas de salida/, para
 # que el mapa se pueda usar sin clonar el repositorio.
 #
-# Requiere activar Pages una vez: Settings › Pages › Source: GitHub Actions.
+# `enablement: true` activa Pages por API en la primera corrida. Si la
+# organización no lo permite, hay que activarlo a mano una vez en
+# Settings › Pages › Source: GitHub Actions.
 
 on:
   push:
@@ -47,6 +49,8 @@ jobs:
           du -sh _site
 
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

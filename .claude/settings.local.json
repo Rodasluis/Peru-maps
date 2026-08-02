@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(py -3.11 \"C:\\\\Users\\\\rodas\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-rodas-Desktop-Peru-maps\\\\4cda1e51-ebc3-4cd7-a8c5-1b3ce9577941\\\\scratchpad\\\\probe_prov.py\")"
+    ]
+  }
+}

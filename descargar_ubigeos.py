@@ -97,11 +97,23 @@ def texto(celda: str) -> str:
 
 
 def descargar(cfg: dict, version: str) -> str:
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
     sc = cfg['sisconcode']
     s = requests.Session()
     s.verify = False       # el certificado del :8443 del INEI no valida
     s.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
                       'Accept': 'text/html,application/xhtml+xml'})
+    # El servidor del INEI no siempre responde; se reintenta con espera
+    # creciente. `connect=` hace falta: urllib3 no reintenta timeouts de
+    # conexión si no se le pide.
+    adaptador = HTTPAdapter(max_retries=Retry(
+        total=5, connect=5, read=3, backoff_factor=3,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({'GET'})))
+    s.mount('https://', adaptador)
+    s.mount('http://', adaptador)
     r = s.get(sc['url'], params={
         'versionCategoriaPK': sc['version_categoria_pk'],
         'nivel': '1',                   # con nivel=1 y TODOS devuelve el árbol

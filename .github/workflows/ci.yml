@@ -1,15 +1,25 @@
 name: build y validación
 
+# El servidor del INEI no siempre es alcanzable desde los runners de GitHub
+# (se han visto ConnectTimeout en geoespacial.inei.gob.pe). Por eso el trabajo
+# que corre en cada push NO depende de la red: valida las capas versionadas en
+# salida/, que es lo que consume quien usa el repositorio. La reconstrucción
+# completa desde el INEI va aparte, por cron y a demanda, donde una caída del
+# servidor es información útil en vez de un push bloqueado.
+
 on:
   push:
   pull_request:
   workflow_dispatch:
   schedule:
-    # Lunes 06:00 UTC: sólo para el chequeo de mantenimiento contra el INEI.
+    # Lunes 06:00 UTC
     - cron: '0 6 * * 1'
 
 jobs:
-  construir:
+  # ---------------------------------------------------------------------------
+  # En cada push: valida lo publicado. Sin red, sin mapshaper, ~4 min.
+  # ---------------------------------------------------------------------------
+  validar:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
@@ -22,17 +32,54 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      # La simplificación la hace mapshaper, no shapely: hay que simplificar el
-      # arco compartido una sola vez para que los vecinos no se despeguen.
+      # Los dos tests que necesitan fuentes/ (no versionado, ~80 MB) hacen skip
+      # solos; los otros 49 corren contra las capas publicadas.
+      - name: Suite de validación
+        run: python -m pytest -q
+
+      - name: Coherencia del listado de ubigeos
+        run: |
+          python - <<'PY'
+          import csv, json, sys
+          from pathlib import Path
+          filas = list(csv.DictReader(
+              open('salida/ubigeos_2025.csv', encoding='utf-8', newline='')))
+          conteo = {}
+          for r in filas:
+              conteo[r['nivel']] = conteo.get(r['nivel'], 0) + 1
+          esperado = {'departamento': 25, 'provincia': 196, 'distrito': 1892}
+          assert conteo == esperado, f'{conteo} != {esperado}'
+          feats = json.loads(Path('salida/distrito.geojson')
+                             .read_text(encoding='utf-8'))['features']
+          assert len(feats) == 1892, len(feats)
+          print('ubigeos y distritos publicados: OK')
+          PY
+
+  # ---------------------------------------------------------------------------
+  # Reconstrucción completa desde el INEI. Por cron y a demanda: si el servidor
+  # del INEI está caído, falla aquí y no en cada push.
+  # ---------------------------------------------------------------------------
+  reconstruir:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      # La simplificación la hace mapshaper: simplifica el arco compartido una
+      # sola vez, de modo que los vecinos no se despegan.
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Instalar mapshaper
-        run: npm install -g mapshaper@0.7.49
+      - run: npm install -g mapshaper@0.7.49
 
-      # Las capas del INEI pesan ~80 MB y no se versionan. Se cachean por
-      # semana para no castigar al servidor del INEI en cada push ni volver el
-      # CI rehén de su disponibilidad.
+      # Las capas del INEI pesan ~80 MB. Se cachean por semana para no castigar
+      # su servidor y para sobrevivir a una caída puntual.
       - name: Semana en curso (clave de caché)
         id: semana
         run: echo "clave=$(date -u +%Y-W%V)" >> "$GITHUB_OUTPUT"
@@ -80,6 +127,8 @@ jobs:
       - name: Mapa de revisión antes/después
         run: python mapa_qa.py
 
+      # Si esto trae cambios, el INEI actualizó su cartografía: hay que
+      # revisarlos y versionarlos.
       - name: Diff revisable de la salida
         run: |
           git add -N salida/
@@ -92,9 +141,10 @@ jobs:
           path: qa/
           if-no-files-found: error
 
+  # ---------------------------------------------------------------------------
+  # ¿El INEI ya publicó alguno de los distritos que este repositorio suple?
+  # ---------------------------------------------------------------------------
   vigilar:
-    # Sólo por cron o a mano: consulta el WFS del INEI para ver si ya publicó
-    # alguno de los distritos que este repo está supliendo.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
@@ -104,5 +154,5 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: pip install -r requirements.txt
-      - name: ¿El INEI ya publicó lo que estamos supliendo?
+      - name: Consultar el WFS y el SISCONCODE del INEI
         run: python vigilar_inei.py

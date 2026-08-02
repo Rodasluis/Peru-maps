@@ -30,9 +30,26 @@ RAIZ = Path(__file__).resolve().parent
 
 
 def sesion():
+    """
+    Sesión con reintentos.
+
+    El servidor del INEI no siempre responde —desde los runners de GitHub se
+    han visto ConnectTimeout—, así que se reintenta con espera creciente en vez
+    de caerse al primer intento. `connect=` es lo que importa aquí: urllib3 no
+    reintenta timeouts de conexión si no se le pide explícitamente.
+    """
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
     s = requests.Session()
-    s.verify = False
+    s.verify = False       # el certificado del INEI no valida
     s.headers.update({'User-Agent': 'Mozilla/5.0'})
+    reintentos = Retry(total=5, connect=5, read=3, backoff_factor=3,
+                       status_forcelist=(429, 500, 502, 503, 504),
+                       allowed_methods=frozenset({'GET'}))
+    adaptador = HTTPAdapter(max_retries=reintentos)
+    s.mount('https://', adaptador)
+    s.mount('http://', adaptador)
     return s
 
 
