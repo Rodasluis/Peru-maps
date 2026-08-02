@@ -1,26 +1,20 @@
-name: build y validación
+name: validación
 
-# El servidor del INEI no siempre es alcanzable desde los runners de GitHub
-# (se han visto ConnectTimeout en geoespacial.inei.gob.pe). Por eso el trabajo
-# que corre en cada push NO depende de la red: valida las capas versionadas en
-# salida/, que es lo que consume quien usa el repositorio. La reconstrucción
-# completa desde el INEI va aparte, por cron y a demanda, donde una caída del
-# servidor es información útil en vez de un push bloqueado.
+# El CI no descarga nada del INEI. Las capas se construyen en local con
+# descargar.py / construir.py / publicar.py y el resultado se versiona en
+# salida/, que es lo que consume quien usa el repositorio. Aquí sólo se valida
+# ese resultado.
+#
+# Depender del servidor del INEI en cada push volvía el CI rehén de su
+# disponibilidad: desde los runners de GitHub devuelve ConnectTimeout.
 
 on:
   push:
   pull_request:
   workflow_dispatch:
-  schedule:
-    # Lunes 06:00 UTC
-    - cron: '0 6 * * 1'
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # En cada push: valida lo publicado. Sin red, sin mapshaper, ~4 min.
-  # ---------------------------------------------------------------------------
   validar:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,127 +26,39 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      # Los dos tests que necesitan fuentes/ (no versionado, ~80 MB) hacen skip
-      # solos; los otros 49 corren contra las capas publicadas.
+      # Los dos tests que necesitan fuentes/ (las capas crudas del INEI, ~80 MB,
+      # no versionadas) hacen skip solos; los otros 49 corren contra las capas
+      # publicadas.
       - name: Suite de validación
         run: python -m pytest -q
 
-      - name: Coherencia del listado de ubigeos
+      - name: Coherencia de lo publicado
         run: |
           python - <<'PY'
-          import csv, json, sys
+          import csv, json
           from pathlib import Path
-          filas = list(csv.DictReader(
-              open('salida/ubigeos_2025.csv', encoding='utf-8', newline='')))
-          conteo = {}
-          for r in filas:
-              conteo[r['nivel']] = conteo.get(r['nivel'], 0) + 1
+
           esperado = {'departamento': 25, 'provincia': 196, 'distrito': 1892}
-          assert conteo == esperado, f'{conteo} != {esperado}'
-          feats = json.loads(Path('salida/distrito.geojson')
-                             .read_text(encoding='utf-8'))['features']
-          assert len(feats) == 1892, len(feats)
-          print('ubigeos y distritos publicados: OK')
+
+          conteo = {}
+          for r in csv.DictReader(
+                  open('salida/ubigeos_2025.csv', encoding='utf-8', newline='')):
+              conteo[r['nivel']] = conteo.get(r['nivel'], 0) + 1
+          assert conteo == esperado, f'ubigeos_2025.csv: {conteo} != {esperado}'
+
+          for nivel, n in esperado.items():
+              feats = json.loads(Path(f'salida/{nivel}.geojson')
+                                 .read_text(encoding='utf-8'))['features']
+              assert len(feats) == n, f'{nivel}.geojson: {len(feats)} != {n}'
+              simp = json.loads(Path(f'salida/{nivel}_simplificado.geojson')
+                                .read_text(encoding='utf-8'))['features']
+              assert len(simp) == n, f'{nivel}_simplificado: {len(simp)} != {n}'
+
+          censo = list(csv.DictReader(
+              open('ejemplos/datos/censo.csv', encoding='utf-8', newline='')))
+          suma = sum(float(r['total']) for r in censo
+                     if r['nivel'] == 'distrito' and r['total'])
+          assert round(suma) == 34_157_732, suma
+
+          print('capas, ubigeos y datos de ejemplo: coherentes')
           PY
-
-  # ---------------------------------------------------------------------------
-  # Reconstrucción completa desde el INEI. Por cron y a demanda: si el servidor
-  # del INEI está caído, falla aquí y no en cada push.
-  # ---------------------------------------------------------------------------
-  reconstruir:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-      - run: pip install -r requirements.txt
-
-      # La simplificación la hace mapshaper: simplifica el arco compartido una
-      # sola vez, de modo que los vecinos no se despegan.
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install -g mapshaper@0.7.49
-
-      # Las capas del INEI pesan ~80 MB. Se cachean por semana para no castigar
-      # su servidor y para sobrevivir a una caída puntual.
-      - name: Semana en curso (clave de caché)
-        id: semana
-        run: echo "clave=$(date -u +%Y-W%V)" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@v4
-        id: cache-fuentes
-        with:
-          path: fuentes
-          key: fuentes-inei-${{ steps.semana.outputs.clave }}
-
-      - name: Bajar las capas del INEI
-        if: steps.cache-fuentes.outputs.cache-hit != 'true'
-        run: python descargar.py
-
-      - name: Listado oficial de ubigeos (SISCONCODE)
-        run: python descargar_ubigeos.py
-
-      - name: Construir los tres niveles
-        run: python construir.py
-
-      - name: Publicar simplificada y GeoPackage
-        run: python publicar.py
-
-      - name: Publicar la capa de arcos
-        run: python lineas.py
-
-      - name: Suite de validación
-        run: python -m pytest -q
-
-      # Byte-estabilidad: misma entrada, mismos bytes. Se comprueba
-      # reconstruyendo y comparando, no confiando en que lo sea.
-      - name: Byte-estabilidad
-        run: |
-          mkdir -p /tmp/primera && cp salida/*.geojson /tmp/primera/
-          python construir.py >/dev/null && python publicar.py >/dev/null
-          python lineas.py >/dev/null
-          for f in salida/*.geojson; do
-            if ! cmp -s "$f" "/tmp/primera/$(basename "$f")"; then
-              echo "::error::$f cambió entre dos corridas idénticas"
-              exit 1
-            fi
-          done
-          echo "las $(ls salida/*.geojson | wc -l) capas son byte-estables"
-
-      - name: Mapa de revisión antes/después
-        run: python mapa_qa.py
-
-      # Si esto trae cambios, el INEI actualizó su cartografía: hay que
-      # revisarlos y versionarlos.
-      - name: Diff revisable de la salida
-        run: |
-          git add -N salida/
-          git --no-pager diff --stat -- salida/ | tee qa/salida.diff.txt
-          git --no-pager diff -- salida/ >> qa/salida.diff.txt || true
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: revision-${{ github.sha }}
-          path: qa/
-          if-no-files-found: error
-
-  # ---------------------------------------------------------------------------
-  # ¿El INEI ya publicó alguno de los distritos que este repositorio suple?
-  # ---------------------------------------------------------------------------
-  vigilar:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-      - run: pip install -r requirements.txt
-      - name: Consultar el WFS y el SISCONCODE del INEI
-        run: python vigilar_inei.py

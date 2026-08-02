@@ -543,9 +543,9 @@ atributos del distrito, y no son estables entre descargas.
 
 ## Suite de validación
 
-51 tests que rompen el build ante cualquier violación. En cada push se validan
-las capas publicadas; la reconstrucción completa desde el INEI corre por cron y
-a demanda, para que una caída de su servidor no bloquee el desarrollo.
+51 tests que rompen el build ante cualquier violación. Las capas se construyen
+en local y su resultado se versiona; en CI se valida ese resultado, sin
+descargar nada del INEI.
 
 - **conteos** 1892 / 196 / 25, leídos de `config.yml`, no literales
 - **ubigeos** únicos y bien formados (6 / 4 / 2 dígitos, con cero a la izquierda)
@@ -670,8 +670,8 @@ El procedimiento:
    distrito de `sin_cartografia` si estaba declarado ahí.
 4. Se reconstruye y valida:
    `python construir.py && python publicar.py && python lineas.py && python -m pytest -q`
-5. Se revisa `qa/<provincia>_antes_despues.png` y el diff de `salida/`. CI los
-   publica como artefacto.
+5. Se revisa `qa/<provincia>_antes_despues.png` y el diff de `salida/` antes de
+   versionar el resultado.
 
 **El paso 5 no es prescindible.** Decidir qué arcos se reusan exige leer la
 memoria descriptiva, y ninguna validación automática cubre ese juicio. Alto
@@ -683,10 +683,10 @@ Lo que sí es automático es detenerse ante geometría dudosa. El build falla si
 línea de corte no cruza el borde, si el punto interior cae en 0 o 2 piezas, si
 el área no se conserva, o si la prolongación cruza el borde más de una vez.
 
-Cuando el INEI publica finalmente el distrito, `vigilar_inei.py` lo detecta y
-avisa, incluso si el ubigeo oficial difiere del predicho. Esa es la señal para
-retirar la entrada del registro: el polígono oficial reemplaza a la
-reconstrucción.
+`vigilar_inei.py` consulta el WFS y el SISCONCODE y avisa cuando el INEI publica
+finalmente un distrito suplido, incluso si el ubigeo oficial difiere del
+predicho. Esa es la señal para retirar la entrada del registro: el polígono
+oficial reemplaza a la reconstrucción.
 
 **No hay scraper de El Peruano, por diseño.** Detectar la publicación de una ley
 es útil como aviso; que un distrito entre en los datos publicados sin que una
