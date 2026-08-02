@@ -1,0 +1,37 @@
+MIT License
+
+Copyright (c) 2026 Luis Rodas
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+NOTA SOBRE LOS DATOS
+
+Esta licencia cubre el CÓDIGO de este repositorio, no los datos geográficos.
+
+Las capas de salida derivan de la cartografía publicada por el Instituto
+Nacional de Estadística e Informática del Perú (INEI) a través de su GeoServer
+"Interoperabilidad". Su reutilización se rige por los términos del INEI, que no
+han sido verificados en este repositorio. Confirme las condiciones con el INEI
+antes de redistribuir los archivos de salida/.
+
+La geometría del distrito de Santa Rosa de Loreto (ubigeo 160405) es obra
+derivada de esas capas más la Ley N.º 32403. Es una reconstrucción para uso
+estadístico y NO constituye una demarcación autoritativa.

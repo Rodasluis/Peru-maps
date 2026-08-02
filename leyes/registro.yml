@@ -1,0 +1,306 @@
+# Registro de distritos creados por ley que el INEI todavía no publica en su
+# WFS.  Una entrada por distrito.  Añadir una entrada + dejar el PDF en esta
+# misma carpeta es todo lo que hace falta para que el pipeline lo incorpore.
+#
+# Cuando el INEI publique el distrito, vigilar_inei.py lo detecta y avisa: ese
+# es el momento de retirar la entrada y quedarse con el polígono oficial.
+
+distritos:
+  # =========================================================================
+  # ALTO TRUJILLO — reconstrucción APROXIMADA, no equiparable a Santa Rosa.
+  #
+  # La memoria (art. 3) sólo da coordenadas para el sur y el oeste: 19 puntos,
+  # 9.45 km. Todo el límite norte —cumbre del cerro Cabras (cota 655),
+  # estribación y cumbre de un cerro sin nombre (cota 430), divisoria de aguas
+  # entre la quebrada San Ildefonso y las quebradas Río Seco y León, y cumbre
+  # sureste del cerro El Alto (cota 1015)— se describe con UN solo par de
+  # coordenadas: 717 365 E, 9 109 924 N.
+  #
+  # Y ese punto NO cae sobre el arco que el INEI ya publica: está a 541 m,
+  # dentro de Huanchaco. O sea que, al revés que en Santa Rosa, el arco
+  # existente NO es el límite que describe la ley.
+  #
+  # Decisión tomada a conciencia: se cierra el polígono con el arco INEI
+  # El Porvenir/Huanchaco. El resultado es utilizable para estadística pero su
+  # borde norte NO es el de la ley. Por eso va con confianza "aproximado" y
+  # con advertencia propia, para que no se confunda con Santa Rosa.
+  #
+  # Composición del perímetro (~22.4 km):
+  #     9.45 km  fiel a las coordenadas de la memoria
+  #     2.80 km  prolongaciones rectas, construidas para cerrar
+  #    10.11 km  arco del INEI sustituyendo al límite norte de la ley
+  #
+  # Para hacerlo bien haría falta digitalizar el Anexo 1 de la ley (mapa
+  # 1:25 000, WGS84 UTM 17S, con grilla rotulada) o resolver las cumbres y la
+  # divisoria de aguas con un modelo de elevación.
+  # =========================================================================
+  - nombre: ALTO TRUJILLO
+    ley: "31644"
+    # Promulgada el 2022-12-15, publicada en El Peruano el 2022-12-15.
+    fecha_creacion: "2022-12-15"
+    fecha_promulgacion: "2022-12-15"
+    pdf: ley-31644.pdf
+    capital: Alto Trujillo          # art. 2, "el núcleo urbano de Alto Trujillo"
+    departamento: "13"
+    provincia: "1301"
+    ubigeo: null
+    # El INEI ya lo registra en el SISCONCODE 2025, igual que a Santa Rosa,
+    # aunque su WFS no publique el polígono.
+    ubigeo_oficial_confirmado: "130112"
+    fuente_del_ubigeo: >-
+      INEI, Sistema de Consulta de Códigos Estandarizados (SISCONCODE),
+      versión de ubigeo 2025. Ver salida/ubigeos_2025.csv.
+
+    # Padre único en la cartografía: todos los puntos con coordenadas de la
+    # memoria caen dentro de El Porvenir. La ley menciona además límites con
+    # La Esperanza y Florencia de Mora, pero esos tramos discurren por dentro
+    # de lo que el INEI mapea como El Porvenir.
+    padre: "130102"
+
+    confianza: aproximado
+    metodo: >-
+      Corte del polígono de El Porvenir (130102) por el tramo que el artículo 3
+      de la Ley 31644 marca como límite con El Porvenir y con Florencia de Mora
+      (6 coordenadas), prolongado en línea recta por ambos extremos hasta el
+      borde del padre. Los límites NORTE (con Huanchaco) y OESTE (con La
+      Esperanza) no se trazan: se reusan los arcos que el INEI ya publica,
+      porque la ley los declara límites con esos distritos. El del norte queda
+      unos 541 m al sur del único punto que la memoria da para ese tramo, y el
+      del oeste entre 58 y 422 m del eje de la avenida Bolognesi que describe
+      la norma. No se digitalizó el Anexo 1 de la ley.
+
+    corte:
+      crs: EPSG:32717               # art. 3: Zona 17 Sur, Datum WGS1984, UTM
+      # SÓLO el tramo que la ley marca como límite con EL PORVENIR (el padre),
+      # más el tramo con Florencia de Mora, del este al oeste.
+      #
+      # El tramo con La Esperanza NO va aquí: la ley lo declara límite con ese
+      # distrito, así que el borde correcto es el arco El Porvenir/La Esperanza
+      # que el INEI ya publica. Trazarlo con las coordenadas de la memoria
+      # dejaba una franja de El Porvenir de ~100-400 m entre Alto Trujillo y
+      # La Esperanza, que no debe existir: los dos distritos son vecinos.
+      # Las coordenadas de ese tramo quedan abajo, sólo para medir.
+      puntos:
+        - [723185, 9111004]   # desembocadura de qda. s/n en qda. San Ildefonso
+        - [720910, 9108871]   # thalweg de la quebrada San Ildefonso
+        - [720391, 9107894]   # thalweg de la quebrada San Ildefonso
+        - [720308, 9107879]
+        - [718038, 9107463]   # eje prolong. av. Uno × prolong. av. 12 Noviembre
+        - [716795, 9107236]   # eje prolong. av. Uno × av. Francisco Bolognesi
+
+      # El extremo este queda 2 104 m dentro de El Porvenir. La ley llega hasta
+      # él bajando por la estribación sureste del cerro El Alto; se prolonga en
+      # recta hacia el noroeste hasta cortar el borde. ESTO ES CONSTRUIDO, no
+      # está en la ley.
+      prolongar_inicio:
+        rumbo: noroeste
+        max_m: 4000
+
+      # El extremo oeste queda a sólo 59 m del borde de El Porvenir, que ahí es
+      # justamente el arco con La Esperanza. Se prolonga al oeste para cerrar
+      # contra él; a partir de ese punto el límite occidental de Alto Trujillo
+      # ES el arco del INEI, y por eso ambos distritos quedan pegados.
+      prolongar_final:
+        rumbo: oeste
+        max_m: 300
+
+      # Punto interior verificado de la pieza norte (holgura 1 368 m al borde).
+      # No es la capital: la ley no da sus coordenadas.
+      punto_interior: [-79.004198, -8.048092]
+
+      verificacion_tramos_reusados:
+        - nombre: Límite oeste con La Esperanza, av. Francisco Bolognesi (art. 3)
+          contra: "130105"          # LA ESPERANZA
+          tipo: sustituido
+          decision: >-
+            La ley declara este tramo límite con La Esperanza, así que el borde
+            correcto es el arco El Porvenir/La Esperanza que el INEI ya publica
+            y no una línea nueva por dentro de El Porvenir. Trazarlo con estas
+            coordenadas dejaba una franja de El Porvenir de entre 58 y 422 m
+            entre Alto Trujillo y La Esperanza, y los dos distritos son
+            vecinos. Se reusa el arco: comparten 2.05 km. Estas coordenadas
+            quedan sólo para medir cuánto se aparta el arco del INEI del eje de
+            la avenida Bolognesi que describe la norma.
+          puntos:
+            - [716795, 9107236]   # av. Uno × av. Francisco Bolognesi
+            - [716769, 9108156]   # av. Bolognesi × vía sin nombre
+            - [716722, 9108160]
+            - [716722, 9108328]
+            - [716797, 9108330]
+            - [716838, 9108327]
+            - [716839, 9108355]
+            - [716810, 9108360]
+            - [716810, 9108386]
+            - [716805, 9108401]
+            - [716803, 9108440]
+            - [716734, 9108412]
+            - [716685, 9108420]
+            - [716642, 9108460]
+
+        - nombre: Límite norte, cerro Cabras – cerro El Alto (art. 3)
+          contra: "130104"          # HUANCHACO
+          tipo: sustituido
+          decision: >-
+            NO coincide. La memoria da un único punto para todo este tramo
+            (717 365 E, 9 109 924 N) y cae a 541 m del arco del INEI, dentro de
+            Huanchaco. Se usa igualmente el arco existente porque no hay forma
+            de reconstruir el límite legal sin digitalizar el Anexo 1 o sin un
+            modelo de elevación para las cumbres y la divisoria de aguas. El
+            polígono publicado es por tanto más pequeño por el norte que el que
+            describe la ley.
+          puntos:
+            - [717365, 9109924]
+
+    advertencia: >-
+      Geometría APROXIMADA, no oficial y no equiparable al resto. Sólo el
+      límite sur y sureste procede de las coordenadas de la Ley 31644. El
+      límite norte se sustituyó por el arco El Porvenir/Huanchaco del INEI, que
+      corre unos 541 m al sur del único punto que la ley da para ese tramo, y
+      el occidental por el arco El Porvenir/La Esperanza, entre 58 y 422 m del
+      eje de la avenida Bolognesi que describe la norma; ambos extremos se
+      cerraron con rectas construidas. El distrito real es mayor por el norte.
+      Además, entre Alto Trujillo y Florencia de Mora queda una franja de El
+      Porvenir de unos 415 m que la ley no contempla: la cartografía del INEI
+      sitúa el límite El Porvenir/Florencia de Mora unos 800 m al sur de donde
+      lo describe la norma. No usar para deslindes.
+
+  - nombre: SANTA ROSA DE LORETO
+    ley: "32403"
+    # Promulgada el 2025-07-02, publicada en El Peruano el 2025-07-03.
+    fecha_creacion: "2025-07-03"
+    fecha_promulgacion: "2025-07-02"
+    pdf: ley-32403.pdf
+    capital: Santa Rosa            # art. 2
+    departamento: "16"
+    provincia: "1604"
+    # null => se calcula con la regla max+1 de ubigeo.py.  Poner aquí un código
+    # sólo para forzar el que asigne oficialmente el INEI cuando se sepa.
+    ubigeo: null
+
+    # Código oficial, comprobado contra el SISCONCODE del INEI (versión 2025),
+    # que ya registra "160405 Santa Rosa de Loreto" aunque su WFS todavía no
+    # publique el polígono.  Se deja que la regla max+1 lo calcule igual y el
+    # build compara: si dejaran de coincidir, para en seco.  Al estar
+    # confirmado, el feature sale con ubigeo_provisional=false.
+    ubigeo_oficial_confirmado: "160405"
+    fuente_del_ubigeo: >-
+      INEI, Sistema de Consulta de Códigos Estandarizados (SISCONCODE),
+      versión de ubigeo 2025. Ver salida/ubigeos_2025.csv.
+
+    # ---------------------------------------------------------------------
+    # Padre único.  La memoria (art. 3.1) describe el límite norte como
+    # "límite con el distrito de Ramón Castilla", pero ese arco YA EXISTE en la
+    # cartografía del INEI: los 10 puntos de referencia del thalweg del Brazo
+    # Yahuma caen a 16-83 m (media 42 m) del arco 160401/160403 que el INEI ya
+    # publica.  Es el límite preexistente, no uno nuevo.  Por eso Santa Rosa
+    # sale íntegramente de Yavarí y Ramón Castilla no se toca.
+    # Comprobado: la intersección del polígono resultante con 160401 es 0 km².
+    # ---------------------------------------------------------------------
+    padre: "160403"
+
+    confianza: reconstruido
+    metodo: >-
+      Corte del polígono de Yavarí (160403) por la línea quebrada del artículo
+      3.1.c de la Ley 32403. Los límites norte (thalweg del Brazo Yahuma),
+      oeste (thalweg del río Callarú) y este (frontera internacional con
+      Colombia y Brasil) se reusan del arco ya publicado por el INEI; no se
+      digitaliza ninguna línea nueva. Sólo se construye el tramo que la ley
+      efectivamente crea.
+
+    corte:
+      # art. 3.2: "Zona 19 Sur, Datum WGS84, Sistema de Proyección UTM"
+      crs: EPSG:32719
+
+      # Puntos en el mismo orden en que los describe la memoria (SE -> NO):
+      # primero rumbo norte en línea quebrada, luego rumbo noroeste, hasta
+      # la desembocadura de una quebrada sin nombre en el río Callarú.
+      puntos:
+        - [391999, 9527007]   # arranque del paralelo sur (art. 3.1.b y 3.1.c)
+        - [391346, 9527654]
+        - [391223, 9527747]
+        - [391034, 9528039]
+        - [391048, 9528361]
+        - [391080, 9528583]
+        - [391167, 9528845]
+        - [391215, 9529059]
+        - [391215, 9529210]
+        - [391152, 9529432]
+        - [391191, 9529623]
+        - [391239, 9529960]
+        - [391054, 9530648]   # fin del tramo rumbo norte
+        - [389162, 9530924]   # inicio del tramo rumbo noroeste
+        - [388679, 9531669]
+        - [384201, 9533289]
+        - [382179, 9534252]
+        - [380411, 9535435]
+        - [376200, 9535937]
+        - [371548, 9537853]
+        - [368952, 9538529]
+        - [366791, 9541517]
+        - [367725, 9545099]   # desembocadura de quebrada s/n en el río Callarú
+
+      # El primer punto no toca el borde del padre: queda 2 571 m adentro. La
+      # ley llega hasta él "en dirección oeste por el paralelo" desde la
+      # frontera con Brasil, así que prolongamos hacia el este hasta cortar el
+      # borde. Medido: sale del polígono de Yavarí en E=394 612 (2 613 m).
+      #
+      # Nota sobre "por el paralelo": un paralelo geográfico y una línea de
+      # northing UTM constante no son la misma línea. Medimos la diferencia y
+      # es de 4-5 m en este tramo, un orden de magnitud por debajo de los 42 m
+      # de ruido de generalización de la propia cartografía. Tomamos northing
+      # constante, que es como está expresada la memoria (art. 3.2).
+      prolongar_inicio:
+        rumbo: este
+        max_m: 40000
+
+      # El último punto sí cae sobre el borde del padre (a 3.9 m). Un empujón
+      # corto siguiendo el rumbo del último tramo garantiza que la línea lo
+      # cruza limpiamente en vez de quedarse tangente.
+      prolongar_final:
+        rumbo: continuar
+        max_m: 500
+
+      # Punto interior conocido del distrito nuevo, para elegir la pieza
+      # correcta después del corte: el pueblo de Santa Rosa, capital según el
+      # art. 2, en la Isla Chinería. Holgura al borde: 1 559 m. El build falla
+      # ruidosamente si no cae dentro de exactamente una pieza.
+      punto_interior: [-69.9667, -4.2167]   # lon, lat (EPSG:4326)
+
+      # ---------------------------------------------------------------------
+      # Tramos que la memoria SÍ describe pero que NO digitalizamos, porque el
+      # arco ya existe en la cartografía del INEI.  Se guardan aquí para medir
+      # la discrepancia y publicarla en qa/reporte.json, en vez de que quede
+      # escondida dentro de una decisión de diseño.
+      #
+      # Estos puntos NO entran en la geometría de salida.
+      # ---------------------------------------------------------------------
+      verificacion_tramos_reusados:
+        - nombre: Brazo Yahuma — límite norte (art. 3.1.a)
+          contra: "160401"          # RAMÓN CASTILLA
+          decision: >-
+            Se reusa el arco 160401/160403 que ya publica el INEI. La ley
+            llama a estas coordenadas "de referencia" y define el límite como
+            el thalweg del Brazo Yahuma, que el arco del INEI ya representa.
+            La discrepancia medida (16-83 m, media 42 m) es ruido de
+            generalización cartográfica, no un límite distinto. Usar estos
+            puntos en vez del arco obligaría a modificar también Ramón
+            Castilla y abriría una franja en disputa entre ambos distritos.
+          puntos:
+            - [373629, 9548106]   # desembocadura del Callarú en Brazo Yahuma
+            - [374013, 9547508]
+            - [375131, 9546784]
+            - [376143, 9546481]
+            - [376973, 9546323]
+            - [378233, 9545923]
+            - [379117, 9545748]
+            - [380211, 9546057]
+            - [381242, 9546801]
+            - [381976, 9547080]   # desembocadura de Brazo Yahuma en el Amazonas
+
+    # Se copia tal cual a las propiedades del feature y al README.
+    advertencia: >-
+      Geometría reconstruida, no oficial. El límite este sigue la frontera
+      internacional tal como la publica el INEI, sujeta a la controversia
+      peruano-colombiana sobre la Isla Chinería / Santa Rosa (2024-2025). Este
+      dato es una reconstrucción para uso estadístico y NO constituye una
+      demarcación autoritativa ni una posición sobre la controversia.

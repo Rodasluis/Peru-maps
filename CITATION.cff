@@ -1,0 +1,82 @@
+# Metadatos de citación — Citation File Format 1.2.0
+# https://citation-file-format.github.io/
+cff-version: 1.2.0
+message: >-
+  Si usa estos datos o este método, por favor cite el repositorio. La
+  cartografía de origen es del INEI y debe citarse aparte (ver «references»).
+
+title: >-
+  Límites administrativos del Perú: 1892 distritos, con los distritos de
+  creación reciente reconstruidos a partir de sus leyes
+
+abstract: >-
+  Conjunto reproducible de los límites administrativos del Perú en los tres
+  niveles (25 departamentos, 196 provincias y 1892 distritos), en GeoJSON y
+  GeoPackage. El INEI reconoce 1892 distritos en su registro oficial de
+  ubigeos, pero su servicio cartográfico sólo publica 1890: faltan Santa Rosa
+  de Loreto (160405, Ley 32403) y Alto Trujillo (130112, Ley 31644). Ambos se
+  reconstruyen cortando el polígono de su distrito padre y reusando los arcos
+  que el INEI ya publica, en vez de digitalizar límites nuevos, de modo que el
+  área se conserva y la topología no se rompe. Cada feature declara su
+  procedencia (INEI, reconstruido o aproximado), de forma que un consumidor
+  puede filtrar lo no oficial con un solo predicado. Incluye el listado oficial
+  de ubigeos y nombres, con claves preparadas para cruzar con los tabulados del
+  Censo 2025, y una suite de validación que verifica conteos, jerarquía,
+  topología y conservación de área.
+
+type: dataset
+license: MIT
+
+authors:
+  - family-names: Rodas
+    given-names: Luis
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+
+version: <1.0.0>
+date-released: <AAAA-MM-DD>
+doi: <10.5281/zenodo.XXXXXXX>
+repository-code: <https://github.com/USUARIO/REPOSITORIO>
+
+keywords:
+  - Perú
+  - límites administrativos
+  - ubigeo
+  - INEI
+  - GeoJSON
+  - distritos
+  - Censo 2025
+  - datos geoespaciales
+  - demarcación territorial
+
+references:
+  - type: database
+    title: >-
+      Interoperabilidad: ig_departamento, ig_provincia, ig_distrito
+      (límites administrativos)
+    authors:
+      - name: Instituto Nacional de Estadística e Informática (INEI)
+    url: "https://geoespacial.inei.gob.pe/geoserver/Interoperabilidad/ows"
+    notes: Cartografía de origen, de uso público.
+
+  - type: database
+    title: >-
+      SISCONCODE — Sistema de Consulta de Códigos Estandarizados,
+      versión de ubigeo 2025
+    authors:
+      - name: Instituto Nacional de Estadística e Informática (INEI)
+    url: "https://webapp.inei.gob.pe:8443/sisconcode/main.htm"
+    notes: Registro oficial de ubigeos y nombres.
+
+  - type: legal-rule
+    title: >-
+      Ley N.º 32403, Ley de creación del distrito de Santa Rosa de Loreto en la
+      provincia de Mariscal Ramón Castilla del departamento de Loreto
+    year: 2025
+    notes: El Peruano, 3 de julio de 2025.
+
+  - type: legal-rule
+    title: >-
+      Ley N.º 31644, Ley de creación del distrito de Alto Trujillo en la
+      provincia de Trujillo del departamento de La Libertad
+    year: 2022
+    notes: El Peruano, 15 de diciembre de 2022.

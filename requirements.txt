@@ -1,0 +1,14 @@
+# Fijado a las versiones con las que se produjo la salida publicada.
+geopandas==1.1.4
+pyogrio==0.13.0
+shapely==2.1.2
+pyproj==3.7.2
+pandas==2.0.1
+numpy==1.24.3
+PyYAML==6.0
+requests==2.28.2
+pypdf==6.14.2
+pytest==9.1.1
+matplotlib==3.7.1
+# Sólo para ejemplos/cargar_censo.py, que lee los tabulados del Censo en Excel.
+openpyxl==3.1.2

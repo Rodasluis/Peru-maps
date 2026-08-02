@@ -1,0 +1,108 @@
+name: build y validación
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Lunes 06:00 UTC: sólo para el chequeo de mantenimiento contra el INEI.
+    - cron: '0 6 * * 1'
+
+jobs:
+  construir:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # La simplificación la hace mapshaper, no shapely: hay que simplificar el
+      # arco compartido una sola vez para que los vecinos no se despeguen.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar mapshaper
+        run: npm install -g mapshaper@0.7.49
+
+      # Las capas del INEI pesan ~80 MB y no se versionan. Se cachean por
+      # semana para no castigar al servidor del INEI en cada push ni volver el
+      # CI rehén de su disponibilidad.
+      - name: Semana en curso (clave de caché)
+        id: semana
+        run: echo "clave=$(date -u +%Y-W%V)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: cache-fuentes
+        with:
+          path: fuentes
+          key: fuentes-inei-${{ steps.semana.outputs.clave }}
+
+      - name: Bajar las capas del INEI
+        if: steps.cache-fuentes.outputs.cache-hit != 'true'
+        run: python descargar.py
+
+      - name: Listado oficial de ubigeos (SISCONCODE)
+        run: python descargar_ubigeos.py
+
+      - name: Construir los tres niveles
+        run: python construir.py
+
+      - name: Publicar simplificada y GeoPackage
+        run: python publicar.py
+
+      - name: Publicar la capa de arcos
+        run: python lineas.py
+
+      - name: Suite de validación
+        run: python -m pytest -q
+
+      # Byte-estabilidad: misma entrada, mismos bytes. Se comprueba
+      # reconstruyendo y comparando, no confiando en que lo sea.
+      - name: Byte-estabilidad
+        run: |
+          mkdir -p /tmp/primera && cp salida/*.geojson /tmp/primera/
+          python construir.py >/dev/null && python publicar.py >/dev/null
+          python lineas.py >/dev/null
+          for f in salida/*.geojson; do
+            if ! cmp -s "$f" "/tmp/primera/$(basename "$f")"; then
+              echo "::error::$f cambió entre dos corridas idénticas"
+              exit 1
+            fi
+          done
+          echo "las $(ls salida/*.geojson | wc -l) capas son byte-estables"
+
+      - name: Mapa de revisión antes/después
+        run: python mapa_qa.py
+
+      - name: Diff revisable de la salida
+        run: |
+          git add -N salida/
+          git --no-pager diff --stat -- salida/ | tee qa/salida.diff.txt
+          git --no-pager diff -- salida/ >> qa/salida.diff.txt || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: revision-${{ github.sha }}
+          path: qa/
+          if-no-files-found: error
+
+  vigilar:
+    # Sólo por cron o a mano: consulta el WFS del INEI para ver si ya publicó
+    # alguno de los distritos que este repo está supliendo.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: ¿El INEI ya publicó lo que estamos supliendo?
+        run: python vigilar_inei.py

@@ -1,0 +1,14 @@
+# Las capas crudas del INEI se bajan con descargar.py; pesan ~80 MB.
+fuentes/
+# Carpeta de la auditoría original, reemplazada por fuentes/.
+limites_inei/
+
+# El Excel del censo se vuelve a bajar con `cargar_censo.py` sin argumentos;
+# el CSV ya cruzado (ejemplos/datos/censo.csv) sí se versiona, para que los
+# ejemplos funcionen nada más clonar.
+ejemplos/datos/*.xlsx
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/

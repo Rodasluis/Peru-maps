@@ -1,0 +1,147 @@
+# Configuración del build.
+#
+# Los conteos NO son literales en el código ni en los tests: cuando se cree el
+# próximo distrito, esto y una entrada en leyes/registro.yml es todo lo que
+# hay que tocar.
+
+conteos_esperados:
+  departamento: 25      # 24 departamentos + Provincia Constitucional del Callao (07)
+  provincia: 196
+  distrito: 1892        # 1890 publicados por el INEI + 2 reconstruidos
+
+# Conteos del registro OFICIAL de ubigeos (SISCONCODE), que no son los mismos
+# que los de la cartografía. El INEI reconoce 1892 distritos pero su WFS sólo
+# publica polígono para 1890: faltan Santa Rosa de Loreto (160405) y Alto
+# Trujillo (130112). Ver README.
+ubigeos_oficiales:
+  departamento: 25
+  provincia: 196
+  distrito: 1892
+
+# Distritos que el INEI reconoce oficialmente pero para los que no publica
+# polígono, y que este repo TAMPOCO reconstruye todavía porque falta registrar
+# su ley de creación en leyes/registro.yml.
+#
+# Es el hueco que queda por cerrar, declarado a propósito en vez de callado: la
+# suite falla si aparece otro que no esté aquí, y también si alguno de estos ya
+# tiene polígono (entonces hay que quitarlo de la lista).
+sin_cartografia:
+  # Vacío: los 1892 distritos oficiales tienen ya polígono. Alto Trujillo
+  # (130112) se reconstruyó con la Ley 31644, aunque de forma aproximada
+  # —su límite norte no procede de la ley—; ver leyes/registro.yml.
+  distritos: {}
+
+sisconcode:
+  url: https://webapp.inei.gob.pe:8443/sisconcode/ubigeo/listaBusquedaUbigeoPorUbicacionGeografica.htm
+  version: "2025"
+  version_categoria_pk: "8-1"
+
+rutas:
+  fuentes: fuentes
+  salida: salida
+  qa: qa
+  leyes: leyes
+
+inei:
+  ows: https://geoespacial.inei.gob.pe/geoserver/Interoperabilidad/ows
+  capas:
+    departamento: Interoperabilidad:ig_departamento
+    provincia: Interoperabilidad:ig_provincia
+    distrito: Interoperabilidad:ig_distrito
+  pagina: 1000
+
+crs:
+  # Todo lo que se publica sale en geográficas.
+  salida: EPSG:4326
+  # Para el corte: la zona UTM en que la ley expresa la memoria (art. 3.2 de
+  # la Ley 32403).  Es la zona local, así que el corte es métricamente fiel.
+  trabajo_loreto: EPSG:32719
+  # Para áreas y solapes a escala nacional.  Perú abarca las zonas UTM 17S a
+  # 19S: usar una sola zona UTM deformaría las áreas en los extremos, así que
+  # se usa una equivalente-área (South America Albers Equal Area Conic).
+  area_nacional: ESRI:102033
+  # La simplificación no lleva CRS propio: mapshaper trabaja sobre lon/lat e
+  # interpreta el intervalo en metros.
+
+corte:
+  # La memoria define tramos rectos en UTM, y una recta en UTM no es una recta
+  # en geográficas. Se densifica la línea de corte antes de reproyectarla para
+  # que el trazo publicado siga el trazo legal. 50 m deja la desviación muy por
+  # debajo del centímetro que se publica.
+  paso_densificado_m: 50
+
+tolerancias:
+  # Cortar un polígono por una línea conserva área a precisión de coma
+  # flotante: medimos 2.3e-05 m² de deriva sobre los 14 371 km² de Yavarí, o
+  # sea ~1.6e-15 en relativo.  1 m² deja cuatro órdenes de magnitud de holgura
+  # y sigue siendo lo bastante estricto como para detectar cualquier error real
+  # de geometría (el error más pequeño que importa —un vértice mal puesto—
+  # mueve áreas de miles de m²).
+  area_conservada_m2: 1.0
+  # Solapes entre distritos.  El INEI publica bordes compartidos exactos, así
+  # que lo esperable es 0; 1 m² absorbe ruido de reproyección a Albers.
+  solape_max_m2: 1.0
+  # Cierre jerárquico: unión de distritos contra la capa de provincia del INEI.
+  # Más holgado porque compara dos capas digitalizadas por separado, cuyos
+  # bordes no son bit a bit idénticos.
+  cierre_jerarquico_m2: 1000.0
+
+# Incoherencias que YA VIENEN en la cartografía del INEI.
+#
+# En estas 7 provincias, la unión de los distritos que el propio INEI publica
+# no reproduce el polígono provincial que el propio INEI publica. Se midió
+# sobre fuentes/ recién descargado, sin pasar por este pipeline, y sale
+# idéntico: no es algo que introduzca el build.
+#
+# Se listan explícitamente en vez de subir la tolerancia a 300 km², que es lo
+# que las volvería invisibles. La suite falla si aparece una NUEVA; estas se
+# aceptan como estado conocido de la fuente. Ver qa/incoherencias_inei.json,
+# que se remide en cada build.
+incoherencias_inei:
+  # Caras cerradas por los límites distritales que no pertenecen a ningún
+  # distrito. Son cuerpos de agua que el INEI excluye de la cobertura: Lago
+  # Junín (269 km²), Arapa (133), Parinacochas (67), Salinas (62), Langui-Layo
+  # (54) y Umayo (30). Están en la fuente y no las introduce el build; se
+  # comprueban para detectar un hueco NUEVO, que sí sería un error.
+  lagos_sin_distrito:
+    area_total_km2: 615.0
+    tolerancia_km2: 1.0
+    caras_maximas: 7
+  # Slivers degenerados en los nodos donde se juntan tres o más límites: cada
+  # corte deja uno o dos donde su línea se encuentra con el arco existente.
+  # Hoy son 3 (Santa Rosa 0.024 m²; Alto Trujillo 0.093 y 0.006 m²), del orden
+  # de un par de celdas de la grilla de publicación (1.1 cm), o sea por debajo
+  # de cualquier rasgo cartográfico real.
+  #
+  # Se acota el ÁREA TOTAL y no el número: así la cota no hay que subirla cada
+  # vez que se añade un distrito, y un hueco de verdad —que sería miles de
+  # veces mayor— sigue rompiendo el build.
+  sliver_degenerado_max_m2: 1.0
+  sliver_area_total_max_m2: 10.0
+  cierre_distrito_provincia:
+    "1403": 279.16   # km² de diferencia simétrica
+    "2008": 116.32
+    "2003": 110.08
+    "2004": 52.76
+    "0102": 47.30
+    "0608": 42.94
+    "0609": 4.36
+
+simplificacion:
+  # La hace mapshaper (CLI de Node), no shapely: simplificar geometría por
+  # geometría mueve cada borde por su cuenta y separa a los vecinos. Medido
+  # sobre los 1891 distritos a 100 m, shapely dejaba 4 776 pares solapados y
+  # 16 470 agujeros espurios; mapshaper deja 0 y 0. Ver README.
+  #   npm install -g mapshaper
+  herramienta: mapshaper
+  # Método de mapshaper: weighted (Visvalingam ponderado, el que trae por
+  # defecto), visvalingam o dp (Douglas-Peucker).
+  metodo: weighted
+  # Para datos en lon/lat, mapshaper interpreta el intervalo en metros.
+  # 100 m es indistinguible por encima de ~1:250 000.
+  intervalo_m: 100
+
+salida:
+  # 7 decimales ≈ 1.1 cm.  Fijar el redondeo es lo que hace que las salidas
+  # sean byte-estables entre corridas y que los diffs de git signifiquen algo.
+  decimales: 7

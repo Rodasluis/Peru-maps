@@ -1,0 +1,54 @@
+name: publicar mapa interactivo
+
+# Publica ejemplos/mapa_web.html en GitHub Pages, con las capas de salida/, para
+# que el mapa se pueda usar sin clonar el repositorio.
+#
+# Requiere activar Pages una vez: Settings › Pages › Source: GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ejemplos/**'
+      - 'salida/*_simplificado.geojson'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Se sube sólo lo que el mapa necesita: el HTML, su indicador y las
+      # capas simplificadas. Las de resolución completa suman ~70 MB y no se
+      # usan para dibujar.
+      - name: Armar el sitio
+        run: |
+          mkdir -p _site/ejemplos/datos _site/salida
+          cp ejemplos/mapa_web.html _site/ejemplos/
+          cp ejemplos/datos/indicador.json _site/ejemplos/datos/
+          cp salida/*_simplificado.geojson _site/salida/
+          cp .nojekyll _site/ 2>/dev/null || true
+          printf '<!doctype html><meta charset="utf-8">' > _site/index.html
+          printf '<meta http-equiv="refresh" content="0; url=ejemplos/mapa_web.html">' >> _site/index.html
+          du -sh _site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

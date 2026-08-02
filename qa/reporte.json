@@ -1,0 +1,94 @@
+{
+  "cortes": [
+    {
+      "area_nueva_km2": 17.3797,
+      "area_padre_antes_km2": 38.391,
+      "area_padre_despues_km2": 21.0113,
+      "crs_de_la_memoria": "EPSG:32717",
+      "crs_del_corte": "EPSG:4326",
+      "cruces_prolongacion_final": 1,
+      "deriva_area_de_la_provincia_m2": 0.01595,
+      "deriva_area_m2": 0.0021904930472373962,
+      "huecos_en_la_secuencia_de_la_provincia": [],
+      "ley": "31644",
+      "nombre": "ALTO TRUJILLO",
+      "padre": "130102",
+      "paso_densificado_m": 50.0,
+      "piezas": 2,
+      "salida_inicio": {
+        "m_desde_el_punto_de_la_memoria": 2104.2,
+        "x": 721697.09,
+        "y": 9112491.91
+      },
+      "tolerancia_area_m2": 1.0,
+      "tramos_reusados_verificados": [
+        {
+          "contra": "130105",
+          "decision": "La ley declara este tramo límite con La Esperanza, así que el borde correcto es el arco El Porvenir/La Esperanza que el INEI ya publica y no una línea nueva por dentro de El Porvenir. Trazarlo con estas coordenadas dejaba una franja de El Porvenir de entre 58 y 422 m entre Alto Trujillo y La Esperanza, y los dos distritos son vecinos. Se reusa el arco: comparten 2.05 km. Estas coordenadas quedan sólo para medir cuánto se aparta el arco del INEI del eje de la avenida Bolognesi que describe la norma.",
+          "distancia_max_m": 421.9,
+          "distancia_media_m": 329.5,
+          "distancia_min_m": 57.7,
+          "puntos_de_la_memoria": 14,
+          "tipo": "sustituido",
+          "tramo": "Límite oeste con La Esperanza, av. Francisco Bolognesi (art. 3)"
+        },
+        {
+          "contra": "130104",
+          "decision": "NO coincide. La memoria da un único punto para todo este tramo (717 365 E, 9 109 924 N) y cae a 541 m del arco del INEI, dentro de Huanchaco. Se usa igualmente el arco existente porque no hay forma de reconstruir el límite legal sin digitalizar el Anexo 1 o sin un modelo de elevación para las cumbres y la divisoria de aguas. El polígono publicado es por tanto más pequeño por el norte que el que describe la ley.",
+          "distancia_max_m": 541.4,
+          "distancia_media_m": 541.4,
+          "distancia_min_m": 541.4,
+          "puntos_de_la_memoria": 1,
+          "tipo": "sustituido",
+          "tramo": "Límite norte, cerro Cabras – cerro El Alto (art. 3)"
+        }
+      ],
+      "ubigeo": "130112",
+      "ubigeo_calculado_por_la_regla": "130112",
+      "ubigeo_confirmado_oficialmente": "130112",
+      "ubigeo_forzado_en_el_registro": false,
+      "ubigeo_provisional": false,
+      "vertices_de_la_linea": 221
+    },
+    {
+      "area_nueva_km2": 249.7533,
+      "area_padre_antes_km2": 14371.3118,
+      "area_padre_despues_km2": 14121.5585,
+      "crs_de_la_memoria": "EPSG:32719",
+      "crs_del_corte": "EPSG:4326",
+      "cruces_prolongacion_final": 1,
+      "deriva_area_de_la_provincia_m2": 0.025879,
+      "deriva_area_m2": 0.000274658203125,
+      "huecos_en_la_secuencia_de_la_provincia": [],
+      "ley": "32403",
+      "nombre": "SANTA ROSA DE LORETO",
+      "padre": "160403",
+      "paso_densificado_m": 50.0,
+      "piezas": 2,
+      "salida_inicio": {
+        "m_desde_el_punto_de_la_memoria": 2613.2,
+        "x": 394612.23,
+        "y": 9527007.0
+      },
+      "tolerancia_area_m2": 1.0,
+      "tramos_reusados_verificados": [
+        {
+          "contra": "160401",
+          "decision": "Se reusa el arco 160401/160403 que ya publica el INEI. La ley llama a estas coordenadas \"de referencia\" y define el límite como el thalweg del Brazo Yahuma, que el arco del INEI ya representa. La discrepancia medida (16-83 m, media 42 m) es ruido de generalización cartográfica, no un límite distinto. Usar estos puntos en vez del arco obligaría a modificar también Ramón Castilla y abriría una franja en disputa entre ambos distritos.",
+          "distancia_max_m": 83.4,
+          "distancia_media_m": 41.8,
+          "distancia_min_m": 15.8,
+          "puntos_de_la_memoria": 10,
+          "tipo": "coincidente",
+          "tramo": "Brazo Yahuma — límite norte (art. 3.1.a)"
+        }
+      ],
+      "ubigeo": "160405",
+      "ubigeo_calculado_por_la_regla": "160405",
+      "ubigeo_confirmado_oficialmente": "160405",
+      "ubigeo_forzado_en_el_registro": false,
+      "ubigeo_provisional": false,
+      "vertices_de_la_linea": 793
+    }
+  ]
+}

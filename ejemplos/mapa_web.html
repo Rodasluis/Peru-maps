@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perú — población por nivel administrativo</title>
+
+<!-- Leaflet por CDN. Para usarlo sin red, descargue leaflet.css y leaflet.js
+     junto a este archivo y cambie las dos rutas. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+  /* Roles de color, no hex sueltos: el modo oscuro se cambia en un solo sitio.
+     Rampa secuencial azul de 6 pasos, claro -> oscuro. */
+  :root {
+    color-scheme: light;
+    --surface-1:#fcfcfb; --plane:#f9f9f7;
+    --ink-1:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --hairline:#c3c2b7;
+    --ring:rgba(11,11,11,.10);
+    --s1:#cde2fb; --s2:#9ec5f4; --s3:#6da7ec;
+    --s4:#3987e5; --s5:#1c5cab; --s6:#0d366b;
+    --sin-dato:#f0efec;
+  }
+  /* En oscuro la rampa se recorre al revés: en una escala secuencial el
+     extremo de valor bajo tiene que fundirse con la superficie, y aquí la
+     superficie es oscura. No es un volteo del tema claro. */
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1:#1a1a19; --plane:#0d0d0d;
+      --ink-1:#fff; --ink-2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --hairline:#383835;
+      --ring:rgba(255,255,255,.10);
+      --sin-dato:#383835;
+      --s1:#0d366b; --s2:#1c5cab; --s3:#256abf;
+      --s4:#3987e5; --s5:#6da7ec; --s6:#b7d3f6;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:#1a1a19; --plane:#0d0d0d;
+    --ink-1:#fff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --hairline:#383835;
+    --ring:rgba(255,255,255,.10);
+    --sin-dato:#383835;
+    --s1:#0d366b; --s2:#1c5cab; --s3:#256abf;
+    --s4:#3987e5; --s5:#6da7ec; --s6:#b7d3f6;
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--plane); color:var(--ink-1);
+    font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  .envoltura { max-width:1400px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .sub { color:var(--ink-2); margin:0 0 6px; font-size:.92rem; }
+  .aviso { color:var(--muted); font-size:.82rem; margin:0 0 16px; }
+
+  /* Los controles van por encima de todo lo que gobiernan, en filas
+     etiquetadas: una por dimensión. */
+  .barra { display:flex; flex-wrap:wrap; gap:18px; align-items:center;
+           margin-bottom:14px; }
+  .grupo { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .grupo > .etq { font-size:.78rem; color:var(--muted);
+                  text-transform:uppercase; letter-spacing:.04em; }
+  .barra button {
+    font:inherit; font-size:.88rem; padding:7px 14px;
+    background:var(--surface-1); color:var(--ink-2);
+    border:1px solid var(--ring); border-radius:7px; cursor:pointer;
+  }
+  .barra button:hover { border-color:var(--hairline); }
+  .barra button[aria-pressed="true"] {
+    background:var(--s5); color:#fff; border-color:transparent;
+  }
+  .barra .sep { flex:1; }
+
+  /* Small multiples: los tres niveles a la vez. Con un nivel seleccionado el
+     panel pasa a una columna y el mapa crece. */
+  .rejilla { display:grid; gap:14px; grid-template-columns:repeat(3,1fr); }
+  .rejilla.uno { grid-template-columns:1fr; }
+  .rejilla.uno .lienzo { height:660px; }
+  @media (max-width:1000px) { .rejilla { grid-template-columns:1fr; } }
+
+  .panel {
+    background:var(--surface-1); border:1px solid var(--ring);
+    border-radius:10px; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .panel h2 {
+    font-size:.95rem; margin:0; padding:11px 14px 9px;
+    border-bottom:1px solid var(--grid); font-weight:600;
+  }
+  .panel h2 small { color:var(--muted); font-weight:400; margin-left:6px; }
+  .lienzo { height:520px; background:var(--surface-1); }
+  .leaflet-container { background:var(--surface-1); font:inherit; }
+
+  /* Tooltip: mejora la lectura, nunca es el único modo de leer un valor;
+     para eso está la vista de tabla. */
+  .leaflet-tooltip.pt {
+    background:var(--surface-1); color:var(--ink-1);
+    border:1px solid var(--ring); border-radius:7px;
+    box-shadow:0 2px 10px rgba(0,0,0,.10); padding:7px 10px; font-size:.84rem;
+  }
+  .leaflet-tooltip.pt b { display:block; font-size:.9rem; }
+  .leaflet-tooltip.pt span { color:var(--ink-2); display:block; }
+  .leaflet-tooltip.pt em { color:var(--muted); font-style:normal; }
+
+  .leyenda {
+    background:var(--surface-1); padding:9px 11px;
+    border:1px solid var(--ring); border-radius:8px;
+    font-size:.76rem; color:var(--ink-2); line-height:1.85;
+  }
+  .leyenda i { width:24px; height:9px; float:left; margin:5px 7px 0 0;
+               border:1px solid var(--hairline); border-radius:2px; }
+  .leyenda .tit { font-weight:600; color:var(--ink-1); display:block;
+                  margin-bottom:3px; }
+
+  #vista-tabla { margin-top:16px; background:var(--surface-1);
+                 border:1px solid var(--ring); border-radius:10px;
+                 overflow:hidden; }
+  table { border-collapse:collapse; width:100%; font-size:.86rem; }
+  caption { text-align:left; color:var(--ink-2); padding:12px 14px; }
+  th,td { padding:6px 14px; border-bottom:1px solid var(--grid);
+          text-align:left; }
+  th { color:var(--ink-2); font-weight:600; position:sticky; top:0;
+       background:var(--surface-1); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .scroll { max-height:460px; overflow:auto; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="envoltura">
+  <h1>Perú — población por nivel administrativo</h1>
+  <p class="sub">
+    Censos Nacionales 2025 · 25 departamentos, 196 provincias y 1892 distritos.
+  </p>
+  <p class="aviso" id="aviso">Cargando…</p>
+
+  <div class="barra">
+    <div class="grupo" role="group" aria-label="Nivel">
+      <span class="etq">Nivel</span>
+      <button data-nivel="todos" aria-pressed="true">Los tres</button>
+      <button data-nivel="departamento" aria-pressed="false">Departamentos</button>
+      <button data-nivel="provincia" aria-pressed="false">Provincias</button>
+      <button data-nivel="distrito" aria-pressed="false">Distritos</button>
+    </div>
+    <div class="grupo" role="group" aria-label="Población">
+      <span class="etq">Población</span>
+      <button data-medida="total" aria-pressed="true">Total</button>
+      <button data-medida="hombre" aria-pressed="false">Hombres</button>
+      <button data-medida="mujer" aria-pressed="false">Mujeres</button>
+    </div>
+    <span class="sep"></span>
+    <div class="grupo">
+      <button id="btn-tabla" aria-pressed="false">Ver tabla</button>
+      <button id="btn-tema" aria-pressed="false">Tema oscuro</button>
+    </div>
+  </div>
+
+  <div class="rejilla" id="rejilla">
+    <section class="panel" data-panel="departamento">
+      <h2>Departamentos <small>25</small></h2>
+      <div class="lienzo" id="m-departamento"></div>
+    </section>
+    <section class="panel" data-panel="provincia">
+      <h2>Provincias <small>196</small></h2>
+      <div class="lienzo" id="m-provincia"></div>
+    </section>
+    <section class="panel" data-panel="distrito">
+      <h2>Distritos <small>1892</small></h2>
+      <div class="lienzo" id="m-distrito"></div>
+    </section>
+  </div>
+
+  <div id="vista-tabla" hidden><div class="scroll" id="tabla"></div></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const NIVELES = ['departamento', 'provincia', 'distrito'];
+// Borde más fino cuanto más polígonos: con 1892 distritos un borde de 1 px
+// sería lo único que se ve.
+const GROSOR = { departamento: 1.0, provincia: 0.5, distrito: 0.18 };
+const RUTA = n => `../salida/${n}_simplificado.geojson`;
+
+let RAMPA, SIN_DATO, HAIRLINE;
+function leerTokens() {
+  const css = getComputedStyle(document.documentElement);
+  RAMPA = ['--s1','--s2','--s3','--s4','--s5','--s6']
+    .map(v => css.getPropertyValue(v).trim());
+  SIN_DATO = css.getPropertyValue('--sin-dato').trim();
+  HAIRLINE = css.getPropertyValue('--hairline').trim();
+}
+leerTokens();
+
+const geo = {};            // nivel -> GeoJSON
+const mapas = {};          // nivel -> { mapa, capa, leyenda, cortes, vals }
+let indicador = null, nivel = 'todos', medida = 'total';
+
+// Cuantiles: la población está muy sesgada (Lima Metropolitana contra
+// distritos amazónicos) y con intervalos iguales casi todo caería en la clase
+// más baja. Cada nivel y cada medida tienen su propia distribución, así que
+// los cortes se recalculan en cada cambio.
+function calcularCortes(vals) {
+  const v = vals.filter(x => x != null).sort((a, b) => a - b);
+  if (!v.length) return [];
+  const q = p => v[Math.min(v.length - 1, Math.floor(p * (v.length - 1)))];
+  return [...new Set([0,1,2,3,4,5,6].map(i => q(i / 6)))];
+}
+function color(x, cortes) {
+  if (x == null) return SIN_DATO;
+  for (let i = cortes.length - 1; i > 0; i--) {
+    if (x >= cortes[i - 1]) return RAMPA[Math.min(i - 1, RAMPA.length - 1)];
+  }
+  return RAMPA[0];
+}
+const fmt = x => x == null ? '—'
+  : x.toLocaleString('es-PE', { maximumFractionDigits: 0 });
+const etiquetaMedida = () =>
+  indicador?.medidas?.[medida]?.etiqueta ?? 'Valor';
+
+async function arrancar() {
+  const aviso = document.getElementById('aviso');
+  try {
+    indicador = await fetch('datos/indicador.json')
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+    if (indicador && !indicador.medidas[medida]) {
+      medida = Object.keys(indicador.medidas)[0];
+      sincronizarBotones();
+    }
+    const cargados = await Promise.all(NIVELES.map(n =>
+      fetch(RUTA(n)).then(r => {
+        if (!r.ok) throw new Error(`no se pudo leer ${RUTA(n)} (${r.status})`);
+        return r.json();
+      })));
+    NIVELES.forEach((n, i) => { geo[n] = cargados[i]; });
+
+    NIVELES.forEach(dibujar);
+    aplicarNivel();
+    aviso.textContent = indicador
+      ? `Fuente: ${indicador.procedencia} · capas simplificadas · `
+        + '6 clases por cuantiles, propias de cada nivel y medida.'
+      : 'Falta datos/indicador.json — corra '
+        + '`py -3.11 ejemplos/mapa_python.py`. Se dibuja sin coropleto.';
+  } catch (e) {
+    aviso.textContent = e.message;
+  }
+}
+
+function valoresDe(n) {
+  return indicador?.medidas?.[medida]?.valores?.[n] ?? {};
+}
+
+function dibujar(n) {
+  const st = mapas[n] ?? (mapas[n] = {});
+  st.vals = valoresDe(n);
+  st.cortes = calcularCortes(Object.values(st.vals));
+
+  if (st.mapa) { st.mapa.remove(); st.mapa = null; }
+  const mapa = L.map(`m-${n}`, {
+    preferCanvas: true, zoomControl: n === 'departamento',
+    attributionControl: false,
+  });
+  st.mapa = mapa;
+
+  st.capa = L.geoJSON(geo[n], {
+    style: f => ({
+      fillColor: color(st.vals[f.properties.ubigeo] ?? null, st.cortes),
+      fillOpacity: 0.9,
+      color: HAIRLINE,                 // borde hairline, recesivo
+      weight: GROSOR[n],
+    }),
+    onEachFeature: (f, lyr) => {
+      const p = f.properties, v = st.vals[p.ubigeo] ?? null;
+      const jer = [p.nombre_provincia, p.nombre_departamento]
+        .filter(Boolean).join(' · ');
+      lyr.bindTooltip(
+        `<b>${p.nombre}</b>`
+        + (jer ? `<span>${jer}</span>` : '')
+        + `<span>${p.ubigeo} · ${fmt(v)} hab.</span>`
+        + (p.fuente === 'derivado' ? `<em>derivado — ${p.confianza}</em>` : ''),
+        { className: 'pt', sticky: true });
+      // El área de acierto es el polígono entero, no un blanco de 8 px.
+      lyr.on('mouseover', () => lyr.setStyle({ weight: GROSOR[n] + 1.5 }));
+      lyr.on('mouseout',  () => lyr.setStyle({ weight: GROSOR[n] }));
+    },
+  }).addTo(mapa);
+  mapa.fitBounds(st.capa.getBounds(), { padding: [8, 8] });
+
+  if (st.cortes.length) {
+    st.leyenda = L.control({ position: 'bottomleft' });
+    st.leyenda.onAdd = () => {
+      const d = L.DomUtil.create('div', 'leyenda');
+      let h = `<span class="tit">${etiquetaMedida()}</span>`;
+      for (let i = 1; i < st.cortes.length; i++) {
+        h += `<i style="background:${RAMPA[Math.min(i - 1, RAMPA.length - 1)]}">`
+           + `</i>${fmt(st.cortes[i - 1])} – ${fmt(st.cortes[i])}<br>`;
+      }
+      d.innerHTML = h;
+      return d;
+    };
+    st.leyenda.addTo(mapa);
+  }
+}
+
+// Vista de tabla: el equivalente accesible. En una escala continua el color no
+// puede ser el único canal de lectura.
+function pintarTabla() {
+  const n = nivel === 'todos' ? 'distrito' : nivel;
+  if (!geo[n]) return;
+  const vals = valoresDe(n);
+  const filas = geo[n].features.map(f => ({
+    u: f.properties.ubigeo, n: f.properties.nombre,
+    p: f.properties.nombre_provincia ?? '',
+    d: f.properties.nombre_departamento ?? '',
+    o: f.properties.fuente,
+    v: vals[f.properties.ubigeo] ?? null,
+  })).sort((a, b) => (b.v ?? -Infinity) - (a.v ?? -Infinity));
+
+  document.getElementById('tabla').innerHTML =
+    `<table><caption>${n} · ${filas.length} filas · ${etiquetaMedida()}`
+    + ' (mayor a menor)</caption>'
+    + '<thead><tr><th>Ubigeo</th><th>Nombre</th><th>Provincia</th>'
+    + '<th>Departamento</th><th>Fuente</th><th class="num">Población</th></tr>'
+    + '</thead><tbody>'
+    + filas.map(r => `<tr><td>${r.u}</td><td>${r.n}</td><td>${r.p}</td>`
+        + `<td>${r.d}</td><td>${r.o}</td>`
+        + `<td class="num">${fmt(r.v)}</td></tr>`).join('')
+    + '</tbody></table>';
+}
+
+function aplicarNivel() {
+  const rejilla = document.getElementById('rejilla');
+  rejilla.classList.toggle('uno', nivel !== 'todos');
+  NIVELES.forEach(n => {
+    rejilla.querySelector(`[data-panel="${n}"]`).hidden =
+      nivel !== 'todos' && nivel !== n;
+  });
+  // Leaflet necesita saber que su contenedor cambió de tamaño, y sólo tiene
+  // medidas válidas si el panel está visible.
+  requestAnimationFrame(() => NIVELES.forEach(n => {
+    const st = mapas[n];
+    if (!st?.mapa || document.getElementById(`m-${n}`).offsetParent === null)
+      return;
+    st.mapa.invalidateSize();
+    st.mapa.fitBounds(st.capa.getBounds(), { padding: [8, 8] });
+  }));
+  pintarTabla();
+}
+
+function sincronizarBotones() {
+  document.querySelectorAll('[data-medida]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.medida === medida)));
+}
+
+document.querySelectorAll('[data-nivel]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-nivel]').forEach(o =>
+      o.setAttribute('aria-pressed', String(o === b)));
+    nivel = b.dataset.nivel;
+    aplicarNivel();
+  });
+});
+
+document.querySelectorAll('[data-medida]').forEach(b => {
+  b.addEventListener('click', () => {
+    medida = b.dataset.medida;
+    sincronizarBotones();
+    NIVELES.forEach(dibujar);         // cambian los cortes y los colores
+    aplicarNivel();
+  });
+});
+
+document.getElementById('btn-tabla').addEventListener('click', e => {
+  const ver = e.target.getAttribute('aria-pressed') !== 'true';
+  e.target.setAttribute('aria-pressed', String(ver));
+  e.target.textContent = ver ? 'Ver mapas' : 'Ver tabla';
+  document.getElementById('vista-tabla').hidden = !ver;
+  document.getElementById('rejilla').hidden = ver;
+  if (!ver) aplicarNivel();
+});
+
+document.getElementById('btn-tema').addEventListener('click', e => {
+  const oscuro = document.documentElement.dataset.theme !== 'dark';
+  document.documentElement.dataset.theme = oscuro ? 'dark' : 'light';
+  e.target.setAttribute('aria-pressed', String(oscuro));
+  e.target.textContent = oscuro ? 'Tema claro' : 'Tema oscuro';
+  leerTokens();                       // el tema oscuro tiene sus propios pasos
+  NIVELES.forEach(n => geo[n] && dibujar(n));
+  aplicarNivel();
+});
+
+arrancar();
+</script>
+</body>
+</html>

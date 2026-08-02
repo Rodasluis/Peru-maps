@@ -1,0 +1,35 @@
+{
+  "cierre_distrito_provincia": [
+    {
+      "diferencia_simetrica_km2": 279.1571,
+      "ubigeo_provincia": "1403"
+    },
+    {
+      "diferencia_simetrica_km2": 116.3221,
+      "ubigeo_provincia": "2008"
+    },
+    {
+      "diferencia_simetrica_km2": 110.0772,
+      "ubigeo_provincia": "2003"
+    },
+    {
+      "diferencia_simetrica_km2": 52.7578,
+      "ubigeo_provincia": "2004"
+    },
+    {
+      "diferencia_simetrica_km2": 47.2965,
+      "ubigeo_provincia": "0102"
+    },
+    {
+      "diferencia_simetrica_km2": 42.9364,
+      "ubigeo_provincia": "0608"
+    },
+    {
+      "diferencia_simetrica_km2": 4.3601,
+      "ubigeo_provincia": "0609"
+    }
+  ],
+  "crs_de_medicion": "ESRI:102033",
+  "nota": "Diferencias heredadas de la cartografía del INEI, medidas sobre la salida publicada. No las introduce este pipeline: se reproducen igual sobre fuentes/ sin tocar.",
+  "tolerancia_m2": 1000.0
+}
