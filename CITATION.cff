@@ -32,10 +32,9 @@ authors:
     given-names: Luis
     # orcid: "https://orcid.org/0000-0000-0000-0000"
 
-version: <1.0.0>
-date-released: <AAAA-MM-DD>
-doi: <10.5281/zenodo.XXXXXXX>
-repository-code: <https://github.com/USUARIO/REPOSITORIO>
+doi: "10.5281/zenodo.21755886"
+repository-code: "https://github.com/Rodasluis/Peru-maps"
+url: "https://rodasluis.github.io/Peru-maps/ejemplos/mapa_web.html"
 
 keywords:
   - Perú

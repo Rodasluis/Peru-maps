@@ -28,13 +28,13 @@ norte sustituido y va marcado `aproximado`.
 
 | archivo | features | tamaño | qué es |
 |---|---|---|---|
-| `salida/departamento.geojson` | 25 | 8.3 MB | polígonos |
-| `salida/provincia.geojson` | 196 | 18.2 MB | polígonos |
-| `salida/distrito.geojson` | **1892** | 42.6 MB | polígonos |
-| `salida/*_simplificado.geojson` | ídem | 1.8 / 4.1 / 10.8 MB | para web |
-| `salida/peru_limites.gpkg` | 3 capas | 46.8 MB | GeoPackage |
-| `salida/ubigeos_2025.csv` | 2 113 filas | 0.3 MB | códigos y nombres oficiales |
-| `salida/limites_lineas.geojson` | 5 600 arcos | 23.8 MB | los límites como líneas, cada uno una sola vez, con los dos distritos que separa |
+| `salida/departamento.geojson` | 25 | 8.3 MB | polígonos de los 25 departamentos en GeoJSON, a resolución completa |
+| `salida/provincia.geojson` | 196 | 18.2 MB | polígonos de las 196 provincias en GeoJSON, a resolución completa |
+| `salida/distrito.geojson` | **1892** | 42.6 MB | polígonos de los 1892 distritos en GeoJSON, a resolución completa |
+| `salida/*_simplificado.geojson` | 25 / 196 / 1892 | 1.8 / 4.1 / 10.8 MB | los mismos tres niveles simplificados a 100 m, para uso web; conservan la topología |
+| `salida/peru_limites.gpkg` | 3 capas | 46.8 MB | los tres niveles a resolución completa en un único GeoPackage, para SIG de escritorio |
+| `salida/ubigeos_2025.csv` | 2 113 filas | 0.3 MB | códigos y nombres oficiales de los tres niveles, con claves para cruzar por nombre |
+| `salida/limites_lineas.geojson` | 5 600 arcos | 23.8 MB | los mismos límites como líneas, cada arco una sola vez, con los dos distritos que separa |
 
 Y en [`ejemplos/`](ejemplos/), dos ejemplos ejecutables de consumo — un
 coropleto en Python y un mapa web con Leaflet. Ver
@@ -212,14 +212,13 @@ En Windows, si `python` abre la Microsoft Store, use `py -3.11`.
 
 ### Mapa interactivo
 
-**[▶ Abrir el mapa](https://USUARIO.github.io/REPOSITORIO/)** — no requiere
-instalar nada.
+**[▶ Abrir el mapa](https://rodasluis.github.io/Peru-maps/ejemplos/mapa_web.html)**
 
 Filtra por **nivel** (los tres a la vez, o uno a pantalla completa) y por
 **población** (total, hombres, mujeres), con tooltip, leyenda por nivel, vista
 de tabla y tema claro/oscuro.
 
-[![Población del Censo 2025 por departamento, provincia y distrito](ejemplos/mapa_python.png)](https://USUARIO.github.io/REPOSITORIO/)
+[![Población del Censo 2025 por departamento, provincia y distrito](ejemplos/mapa_python.png)](https://rodasluis.github.io/Peru-maps/ejemplos/mapa_web.html)
 
 Para ejecutarlo en local, `fetch()` sobre `file://` está bloqueado por el
 navegador, así que hace falta un servidor:
@@ -238,9 +237,9 @@ python ejemplos/mapa_python.py --nivel distrito --medida mujer
 ```
 
 `mapa_python.py` escribe el PNG y `ejemplos/datos/indicador.json`, que es lo que
-consume el mapa web: un solo sitio decide qué se mapea. Sin
-`ejemplos/datos/censo.csv` ambos caen al **área en km²** calculada de la
-geometría, para poder correr sin red.
+consume el mapa web: un solo sitio decide qué se mapea. En ausencia de
+`ejemplos/datos/censo.csv`, ambos ejemplos mapean el **área en km²** calculada
+de la geometría.
 
 Los ejemplos leen las capas **simplificadas** (1.8 / 4.1 / 10.8 MB en vez de
 8.3 / 18.2 / 42.6 MB) y calculan **6 clases por cuantiles propias de cada nivel
@@ -643,8 +642,8 @@ línea fronteriza del INEI sin reinterpretarla.
 
 ## Incorporar un distrito de creación reciente
 
-Incorporar un distrito nuevo es una entrada en el registro de leyes y una
-corrida del pipeline; no requiere tocar el código. Santa Rosa de Loreto y Alto
+Un distrito nuevo se incorpora con una entrada en el registro de leyes y una
+corrida del pipeline, sin modificar el código. Santa Rosa de Loreto y Alto
 Trujillo se incorporaron por esta vía.
 
 El procedimiento:
@@ -673,46 +672,44 @@ El procedimiento:
 5. Se revisa `qa/<provincia>_antes_despues.png` y el diff de `salida/` antes de
    versionar el resultado.
 
-**El paso 5 no es prescindible.** Decidir qué arcos se reusan exige leer la
-memoria descriptiva, y ninguna validación automática cubre ese juicio. Alto
-Trujillo lo ilustra: trazar los tramos que la ley declara límite con La
-Esperanza dejaba una franja de El Porvenir entre dos distritos que la propia ley
-declara vecinos. El error sólo se ve mirando el mapa.
+**La revisión visual del paso 5 es obligatoria.** Decidir qué arcos se reusan
+exige leer la memoria descriptiva, y ninguna validación automática cubre ese
+juicio. Alto Trujillo lo ilustra: trazar los tramos que la ley declara límite
+con La Esperanza dejaba una franja de El Porvenir entre dos distritos que la
+propia ley declara vecinos, y ese error sólo se detecta mirando el mapa.
 
-Lo que sí es automático es detenerse ante geometría dudosa. El build falla si la
-línea de corte no cruza el borde, si el punto interior cae en 0 o 2 piezas, si
-el área no se conserva, o si la prolongación cruza el borde más de una vez.
+El build sí se detiene por sí solo ante geometría dudosa: falla si la línea de
+corte no cruza el borde, si el punto interior cae en 0 o 2 piezas, si el área no
+se conserva, o si la prolongación cruza el borde más de una vez.
 
 `vigilar_inei.py` consulta el WFS y el SISCONCODE y avisa cuando el INEI publica
 finalmente un distrito suplido, incluso si el ubigeo oficial difiere del
 predicho. Esa es la señal para retirar la entrada del registro: el polígono
 oficial reemplaza a la reconstrucción.
 
-**No hay scraper de El Peruano, por diseño.** Detectar la publicación de una ley
-es útil como aviso; que un distrito entre en los datos publicados sin que una
-persona revise la geometría, no.
+**No se incluye un scraper de El Peruano, por diseño.** Detectar la publicación
+de una ley es útil como aviso, pero un distrito no debe entrar en los datos
+publicados sin que una persona revise su geometría.
 
 ---
 
 ## Cómo citar
 
-DOI: `10.5281/zenodo.XXXXXXX`
+[![DOI](https://zenodo.org/badge/1319873480.svg)](https://doi.org/10.5281/zenodo.21755886)
 
-> Rodas, L. (AAAA). *Límites administrativos del Perú: 1892 distritos, con los
+> Rodas, L. (2026). *Límites administrativos del Perú: 1892 distritos, con los
 > distritos de creación reciente reconstruidos a partir de sus leyes*
-> (versión X.Y.Z) \[conjunto de datos]. Zenodo.
-> https://doi.org/10.5281/zenodo.XXXXXXX
+> \[conjunto de datos]. Zenodo. https://doi.org/10.5281/zenodo.21755886
 
 ```bibtex
 @dataset{rodas_limites_peru,
   author    = {Rodas, Luis},
   title     = {Límites administrativos del Perú: 1892 distritos, con los
                distritos de creación reciente reconstruidos a partir de sus leyes},
-  year      = {AAAA},
-  version   = {X.Y.Z},
+  year      = {2026},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.XXXXXXX},
-  url       = {https://doi.org/10.5281/zenodo.XXXXXXX}
+  doi       = {10.5281/zenodo.21755886},
+  url       = {https://doi.org/10.5281/zenodo.21755886}
 }
 ```
 
