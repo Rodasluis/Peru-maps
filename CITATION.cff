@@ -6,23 +6,23 @@ message: >-
   cartografía de origen es del INEI y debe citarse aparte (ver «references»).
 
 title: >-
-  Límites administrativos del Perú: 1892 distritos, con los distritos de
+  Límites administrativos del Perú: 1893 distritos, con los distritos de
   creación reciente reconstruidos a partir de sus leyes
 
 abstract: >-
   Conjunto reproducible de los límites administrativos del Perú en los tres
-  niveles (25 departamentos, 196 provincias y 1892 distritos), en GeoJSON y
-  GeoPackage. El INEI reconoce 1892 distritos en su registro oficial de
-  ubigeos, pero su servicio cartográfico sólo publica 1890: faltan Santa Rosa
-  de Loreto (160405, Ley 32403) y Alto Trujillo (130112, Ley 31644). Ambos se
-  reconstruyen cortando el polígono de su distrito padre y reusando los arcos
-  que el INEI ya publica, en vez de digitalizar límites nuevos, de modo que el
-  área se conserva y la topología no se rompe. Cada feature declara su
-  procedencia (INEI, reconstruido o aproximado), de forma que un consumidor
-  puede filtrar lo no oficial con un solo predicado. Incluye el listado oficial
-  de ubigeos y nombres, con claves preparadas para cruzar con los tabulados del
-  Censo 2025, y una suite de validación que verifica conteos, jerarquía,
-  topología y conservación de área.
+  niveles (25 departamentos, 196 provincias y 1893 distritos), en GeoJSON y
+  GeoPackage. El servicio cartográfico del INEI sólo publica polígono para
+  1890 distritos: faltan Santa Rosa de Loreto (160405, Ley 32403), Alto
+  Trujillo (130112, Ley 31644) y Sangani (120307 previsto, Ley 32729). Los
+  tres se reconstruyen cortando el polígono de su distrito padre y reusando
+  los arcos que el INEI ya publica, en vez de digitalizar límites nuevos, de
+  modo que el área se conserva y la topología no se rompe. Cada feature
+  declara su procedencia (INEI, reconstruido o aproximado), de forma que un
+  consumidor puede filtrar lo no oficial con un solo predicado. Incluye el
+  listado oficial de ubigeos y nombres, con claves preparadas para cruzar con
+  los tabulados del Censo 2025, y una suite de validación que verifica
+  conteos, jerarquía, topología y conservación de área.
 
 type: dataset
 license: MIT
@@ -79,3 +79,10 @@ references:
       provincia de Trujillo del departamento de La Libertad
     year: 2022
     notes: El Peruano, 15 de diciembre de 2022.
+
+  - type: legal-rule
+    title: >-
+      Ley N.º 32729, Ley de creación del distrito de Sangani en la provincia
+      de Chanchamayo del departamento de Junín
+    year: 2026
+    notes: El Peruano, edición extraordinaria, 15 de julio de 2026.

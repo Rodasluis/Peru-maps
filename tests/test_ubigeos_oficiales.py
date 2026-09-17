@@ -108,16 +108,56 @@ def test_los_nombres_sueltos_si_se_repiten(oficiales):
 
 
 def test_la_cartografia_no_inventa_ubigeos(cfg, oficiales):
-    """Todo ubigeo publicado tiene que existir en el registro oficial."""
+    """
+    Todo ubigeo publicado tiene que existir en el registro oficial, salvo los
+    declarados como provisionales en config.yml: distritos cuya ley es más
+    reciente que la última versión de ubigeo del SISCONCODE, y cuyo código sale
+    de la regla max+1.  Es el hueco simétrico a sin_cartografia, y se declara
+    con el mismo criterio en vez de dejarlo pasar en silencio.
+    """
     salida = RAIZ / cfg['rutas']['salida'] / 'distrito.geojson'
     if not salida.exists():
         pytest.skip('falta salida/distrito.geojson; corra construir.py')
     publicados = {f['properties']['ubigeo'] for f in
                   json.loads(salida.read_text(encoding='utf-8'))['features']}
     oficial = {r['ubigeo'] for r in por_nivel(oficiales, 'distrito')}
-    inventados = publicados - oficial
+    sin_registrar = publicados - oficial
+
+    declarados = set(cfg.get('ubigeos_provisionales', {}).get('distritos', {}))
+    inventados = sin_registrar - declarados
     assert not inventados, (
-        f'se publican ubigeos que el INEI no reconoce: {sorted(inventados)}')
+        f'se publican ubigeos que el INEI no reconoce y que no están '
+        f'declarados en config.yml (ubigeos_provisionales): '
+        f'{sorted(inventados)}')
+
+    resueltos = declarados - sin_registrar
+    assert not resueltos, (
+        f'{sorted(resueltos)} ya está en el registro oficial (o ya no se '
+        f'publica); quítelo de ubigeos_provisionales en config.yml, fije '
+        f'ubigeo_oficial_confirmado en leyes/registro.yml y actualice el '
+        f'conteo de ubigeos_oficiales')
+
+
+def test_los_ubigeos_provisionales_salen_marcados(cfg):
+    """
+    Lo que declara config.yml y lo que sale en los features tienen que decir lo
+    mismo: un código sin confirmar va con ubigeo_provisional: true.
+    """
+    salida = RAIZ / cfg['rutas']['salida'] / 'distrito.geojson'
+    if not salida.exists():
+        pytest.skip('falta salida/distrito.geojson; corra construir.py')
+    declarados = set(cfg.get('ubigeos_provisionales', {}).get('distritos', {}))
+    props = {f['properties']['ubigeo']: f['properties'] for f in
+             json.loads(salida.read_text(encoding='utf-8'))['features']}
+    for u in sorted(declarados):
+        assert u in props, f'{u} está declarado provisional pero no se publica'
+        assert props[u]['ubigeo_provisional'] is True, (
+            f'{u} está declarado provisional en config.yml pero el feature '
+            f'sale con ubigeo_provisional: {props[u]["ubigeo_provisional"]}')
+    marcados = {u for u, p in props.items() if p['ubigeo_provisional']}
+    assert marcados == declarados, (
+        f'features marcados provisionales: {sorted(marcados)}; declarados en '
+        f'config.yml: {sorted(declarados)}')
 
 
 def test_el_ubigeo_derivado_coincide_con_el_oficial(cfg, oficiales):
