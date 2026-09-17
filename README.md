@@ -20,13 +20,13 @@ marcados como derivados. No tienen la misma calidad: Santa Rosa reusa arcos que
 sí son el límite que describe su ley, mientras que Alto Trujillo y Sangani
 tienen tramos sustituidos o aproximados y van marcados `aproximado`.
 
-> **Limitación de esta corrida.** El SISCONCODE y el WFS del INEI no fueron
-> alcanzables desde este entorno (política de red), así que
-> `salida/ubigeos_2025.csv` sigue reflejando la versión anterior (1892
-> distritos, sin Sangani) y `120307` es sólo la predicción de la regla
-> `max + 1`, no un código confirmado. Corra `python descargar_ubigeos.py` con
-> acceso a internet para refrescarlo antes de dar esta reconstrucción por
-> definitiva.
+> **Limitación conocida.** `salida/ubigeos_2025.csv` todavía no incluye a
+> Sangani: su ley es posterior a la última versión de ubigeo del SISCONCODE que
+> se pudo descargar, así que `120307` es la predicción de la regla `max + 1` y
+> no un código confirmado. Va declarado en `ubigeos_provisionales`
+> (`config.yml`) y el feature sale con `ubigeo_provisional: true`; la suite lo
+> exige y avisará en cuanto el código quede registrado. Para cerrarlo, corra
+> `python descargar_ubigeos.py` con acceso al SISCONCODE.
 
 > **Estos límites no son oficiales y son sólo para uso estadístico.** Sirven
 > para agregar y mapear indicadores por unidad administrativa. No constituyen
@@ -157,6 +157,16 @@ Al WFS le faltan **tres** polígonos; los tres se reconstruyen aquí:
 `sin_cartografia` en `config.yml` queda vacío, y la suite de validación falla si
 aparece un distrito oficial nuevo sin polígono.
 
+El hueco simétrico —un distrito que **ya se publica** pero que el registro
+oficial todavía no lista— se declara en `ubigeos_provisionales`, en el mismo
+`config.yml`. Hoy tiene una entrada, `120307` Sangani. La suite falla si
+aparece un ubigeo publicado fuera del registro que **no** esté declarado, si un
+declarado deja de publicarse, y también cuando el SISCONCODE por fin lo
+registra: entonces hay que quitarlo de la lista, fijar
+`ubigeo_oficial_confirmado` en `leyes/registro.yml` y subir el conteo de
+`ubigeos_oficiales`. Así el hueco es explícito y se cierra solo cuando toca, en
+vez de quedar como un test en rojo que se normaliza.
+
 **Para Santa Rosa de Loreto y Alto Trujillo, los códigos no son predicciones.**
 El SISCONCODE registra `160405 Santa Rosa de Loreto` y `130112 Alto Trujillo`,
 exactamente lo que calcula la regla `max + 1` en ambos casos. El build los
@@ -227,7 +237,7 @@ python descargar_ubigeos.py   # listado oficial de ubigeos y nombres (CSV)
 python construir.py      # arma los 3 niveles en salida/ + QA en qa/
 python publicar.py       # simplificada (mapshaper) + GeoPackage
 python lineas.py         # los límites como líneas (opcional)
-python -m pytest -q      # suite de validación (51 tests, ~3 min)
+python -m pytest -q      # suite de validación (52 tests, ~3 min)
 python mapa_qa.py        # PNG antes/después de la provincia tocada
 ```
 
@@ -349,6 +359,13 @@ ubigeo en [`ejemplos/datos/censo.csv`](ejemplos/datos/censo.csv):
 cruce. El cruce está completo y verificado —25 / 196 / 1892, y la suma de los
 distritos da exactamente el total nacional publicado—; el script documenta las
 particularidades del tabulado y emite un informe de cobertura en cada corrida.
+
+> **Sangani no tiene fila de censo, y es correcto que no la tenga.** Se creó en
+> julio de 2026, después del Censo 2025, cuyo territorio todavía se contabiliza
+> dentro de Perené. Los ejemplos lo dibujan rayado como «sin dato» y
+> `ejemplos/datos/indicador.json` trae `null` en `120307`: el mapa cubre 1892
+> de 1893 distritos. Repartir la población de Perené entre ambos exigiría
+> bajar al nivel de centro poblado, que estos ejemplos no hacen.
 
 > **Se cruza por `clave_censo`, no por nombre.** Ver
 > [la sección de ubigeos](#ubigeos-y-nombres-oficiales-cruzables-con-el-censo):
@@ -570,12 +587,36 @@ la pieza correcta tras el corte no son las coordenadas de la capital Santa
 Rosa —la ley no las da—, sino un punto representativo del polígono resultante,
 a 2 329 m del borde más cercano.
 
+### Verificaciones sobre el polígono publicado
+
+Los **25 vértices del artículo 3.1.b caen sobre el borde publicado de
+Sangani** a 0.005 m de media (máximo 0.01 m, o sea dentro de la celda de
+publicación de 1.1 cm): el polígono sigue las coordenadas de la ley, no una
+versión suavizada de ellas. La unión de Perené nuevo y Sangani reproduce el
+Perené anterior con **0.32 m² de diferencia simétrica** sobre 1 490 km² y una
+distancia de Hausdorff de **5 mm**: el corte no mueve el perímetro exterior.
+
+Adyacencias publicadas:
+
+| vecino | frontera compartida |
+|---|---|
+| Pichanaqui (`120303`) | 55.81 km |
+| Perené (`120302`) | 44.78 km |
+| **Puerto Bermúdez (`190306`, Pasco)** | **0 — sólo se tocan junto al vértice NE** |
+
+La última fila corrige una lectura fácil de las notas de prensa, que describen
+a Sangani como vecino de Puerto Bermúdez: la memoria descriptiva **sólo
+declara límites con Pichanaqui y con Perené**, y en la cartografía del INEI el
+vértice noreste del distrito (`501 878 E, 8 811 664 N`) queda a 22 m del
+polígono de Puerto Bermúdez. Perené conserva sus 17.73 km de frontera con
+Puerto Bermúdez; Sangani no hereda ninguno.
+
 **Limitación de esta reconstrucción, aparte de la geometría.** El ubigeo
 `120307` es la predicción de la regla `max + 1` sobre Chanchamayo
-(`120301`-`120306`, sin huecos), pero no se pudo contrastar contra el
-SISCONCODE porque ese servicio no fue alcanzable desde el entorno en que se
-hizo esta corrida. A diferencia de Santa Rosa y Alto Trujillo, Sangani sale con
-`ubigeo_provisional: true`.
+(`120301`-`120306`, sin huecos), y todavía no se ha contrastado contra el
+SISCONCODE. A diferencia de Santa Rosa y Alto Trujillo, Sangani sale con
+`ubigeo_provisional: true` y va declarado en `ubigeos_provisionales`
+(`config.yml`); ver [la sección de ubigeos](#el-registro-oficial-y-la-cartografía-no-coinciden).
 
 ## Asignación de ubigeo
 
@@ -637,12 +678,15 @@ atributos del distrito, y no son estables entre descargas.
 
 ## Suite de validación
 
-51 tests que rompen el build ante cualquier violación. Las capas se construyen
+52 tests que rompen el build ante cualquier violación. Las capas se construyen
 en local y su resultado se versiona; en CI se valida ese resultado, sin
 descargar nada del INEI.
 
 - **conteos** 1893 / 196 / 25, leídos de `config.yml`, no literales
 - **ubigeos** únicos y bien formados (6 / 4 / 2 dígitos, con cero a la izquierda)
+- **ubigeos provisionales** declarados en `config.yml` y marcados como tales en
+  el feature; falla tanto si aparece uno sin declarar como si el SISCONCODE ya
+  registró alguno de los declarados
 - **jerarquía de códigos** cierra en ambos sentidos entre los tres niveles
 - **nombres** de provincia y departamento resueltos contra sus capas
 - **procedencia** en todo feature; un solo predicado separa lo oficial
@@ -714,6 +758,30 @@ trae las suyas.
 Se acota el **área total** (`< 10 m²`) y no el número: así la cota no hay que
 subirla cada vez que se añade un distrito, y un hueco de verdad —que sería miles
 de veces mayor— sigue rompiendo el build.
+
+**Arcos cortos mal clasificados como `exterior` en los nodos del corte.**
+`lineas.py` empareja dos distritos cuando sus bordes **coinciden vértice a
+vértice**. En los pocos metros donde la línea de corte cruza el borde del padre,
+`split` reconstruye el anillo y la rejilla de publicación (1.1 cm) desplaza esos
+vértices lo justo para que dejen de coincidir con los del vecino, que no se
+toca. El resultado es que ese tramo sale como dos arcos casi paralelos con
+`tipo: exterior` y `ubigeo_b: null` —la etiqueta reservada a frontera y
+litoral— en pleno interior del país:
+
+| distrito derivado | arcos espurios | largo total |
+|---|---|---|
+| Santa Rosa de Loreto (`160405`) | 3 | 76 m |
+| Alto Trujillo (`130112`) | 6 | 571 m |
+| Sangani (`120307`) | 6 | 398 m |
+
+**No es un hueco ni mueve el límite**: la geometría de los polígonos se
+conserva (Hausdorff de 5 mm en el caso de Sangani) y `polygonize` no encuentra
+caras huérfanas nuevas. Sólo afecta a quien consuma `limites_lineas.geojson`
+filtrando por `tipo`. Para filtrar frontera internacional y litoral de verdad,
+descarte además los arcos exteriores de menos de ~1 km que caigan lejos de la
+costa y de la línea de frontera. Arreglarlo de raíz pide emparejar los arcos
+con tolerancia en vez de por coincidencia exacta, o pegar los extremos del
+corte a los vértices del padre; ninguna de las dos cosas se hace hoy.
 
 **Sólo se contemplan distritos nuevos.** En la práctica sólo se crean distritos.
 No hay maquinaria para provincias ni departamentos nuevos; si eso pasara, habría

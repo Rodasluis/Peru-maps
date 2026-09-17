@@ -33,6 +33,26 @@ sin_cartografia:
   # —su límite norte no procede de la ley—; ver leyes/registro.yml.
   distritos: {}
 
+# El hueco simétrico al anterior: distritos que este repo YA publica pero que el
+# registro oficial (SISCONCODE) todavía no lista, porque su ley es más reciente
+# que la última versión de ubigeo publicada. Su código sale de la regla max+1 de
+# ubigeo.py y por eso el feature va con ubigeo_provisional: true.
+#
+# Se declaran uno a uno, con el mismo criterio que sin_cartografia: la suite
+# falla si aparece un ubigeo publicado fuera del registro oficial que NO esté
+# aquí, y también si alguno de estos ya aparece en el registro (entonces hay que
+# quitarlo de esta lista, poner ubigeo_oficial_confirmado en leyes/registro.yml
+# y subir el conteo de ubigeos_oficiales).
+#
+# Para resolverlos hace falta correr descargar_ubigeos.py con acceso al
+# SISCONCODE del INEI.
+ubigeos_provisionales:
+  distritos:
+    "120307": >-
+      SANGANI, creado por la Ley 32729 (publicada el 2026-07-15) en la
+      provincia de Chanchamayo. La regla max+1 sobre 120301-120306, que no
+      tiene huecos, da 120307. No verificado contra el SISCONCODE.
+
 sisconcode:
   url: https://webapp.inei.gob.pe:8443/sisconcode/ubigeo/listaBusquedaUbigeoPorUbicacionGeografica.htm
   version: "2025"
