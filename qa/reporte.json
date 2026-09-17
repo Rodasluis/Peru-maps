@@ -89,6 +89,46 @@
       "ubigeo_forzado_en_el_registro": false,
       "ubigeo_provisional": false,
       "vertices_de_la_linea": 793
+    },
+    {
+      "area_nueva_km2": 223.2086,
+      "area_padre_antes_km2": 1490.0236,
+      "area_padre_despues_km2": 1266.815,
+      "crs_de_la_memoria": "EPSG:32718",
+      "crs_del_corte": "EPSG:4326",
+      "cruces_prolongacion_final": 1,
+      "deriva_area_de_la_provincia_m2": 0.004414,
+      "deriva_area_m2": 0.0018737316131591797,
+      "huecos_en_la_secuencia_de_la_provincia": [],
+      "ley": "32729",
+      "nombre": "SANGANI",
+      "padre": "120302",
+      "paso_densificado_m": 50.0,
+      "piezas": 2,
+      "salida_inicio": {
+        "m_desde_el_punto_de_la_memoria": 0.2,
+        "x": 501472.24,
+        "y": 8784021.0
+      },
+      "tolerancia_area_m2": 1.0,
+      "tramos_reusados_verificados": [
+        {
+          "contra": "120303",
+          "decision": "Se reusa el arco 120302/120303 que ya publica el INEI entre Perené y Pichanaqui. Los 3 puntos que la memoria da para este tramo (\"de referencia\" salvo el punto final) caen a 0.2-21.0 m del arco existente, ruido de generalización cartográfica del mismo orden que el medido en Santa Rosa (16-83 m). El resto del tramo (thalwegs de las quebradas Camonashari y Zutziqui, y de los ríos Perené y Pichanaqui) no trae coordenadas propias: la memoria lo describe por los cursos de agua, que el arco del INEI ya representa.",
+          "distancia_max_m": 21.0,
+          "distancia_media_m": 11.3,
+          "distancia_min_m": 0.2,
+          "puntos_de_la_memoria": 3,
+          "tipo": "coincidente",
+          "tramo": "Límite Sangani-Pichanaqui (art. 3.1.a)"
+        }
+      ],
+      "ubigeo": "120307",
+      "ubigeo_calculado_por_la_regla": "120307",
+      "ubigeo_confirmado_oficialmente": null,
+      "ubigeo_forzado_en_el_registro": false,
+      "ubigeo_provisional": true,
+      "vertices_de_la_linea": 914
     }
   ]
 }

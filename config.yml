@@ -7,12 +7,14 @@
 conteos_esperados:
   departamento: 25      # 24 departamentos + Provincia Constitucional del Callao (07)
   provincia: 196
-  distrito: 1892        # 1890 publicados por el INEI + 2 reconstruidos
+  distrito: 1893        # 1890 publicados por el INEI + 3 reconstruidos
 
 # Conteos del registro OFICIAL de ubigeos (SISCONCODE), que no son los mismos
-# que los de la cartografía. El INEI reconoce 1892 distritos pero su WFS sólo
-# publica polígono para 1890: faltan Santa Rosa de Loreto (160405) y Alto
-# Trujillo (130112). Ver README.
+# que los de la cartografía. El SISCONCODE todavía no se pudo consultar para
+# esta corrida (Sangani es de creación muy reciente), así que este conteo
+# sigue reflejando la última versión verificada; su WFS de todos modos sólo
+# publica polígono para 1890: faltan Santa Rosa de Loreto (160405), Alto
+# Trujillo (130112) y ahora Sangani (120307 previsto). Ver README.
 ubigeos_oficiales:
   departamento: 25
   provincia: 196

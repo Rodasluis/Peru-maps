@@ -304,3 +304,148 @@ distritos:
       peruano-colombiana sobre la Isla Chinería / Santa Rosa (2024-2025). Este
       dato es una reconstrucción para uso estadístico y NO constituye una
       demarcación autoritativa ni una posición sobre la controversia.
+
+  # =========================================================================
+  # SANGANI — reconstrucción APROXIMADA. La ley da los 25 vértices de la línea
+  # de corte (límite Sangani-Perené, art. 3.1.b) pero la mayor parte del
+  # tramo sigue accidentes naturales o viales (thalwegs, vaguadas, divisorias
+  # de aguas, estribaciones/líneas de cumbres, ejes de vía) descritos sólo con
+  # puntos de referencia espaciados; unir esos puntos con rectas es una
+  # aproximación, no la ruta real, porque este pipeline no tiene fuente
+  # hidrológica ni modelo de elevación. Sólo 4 de los 25 tramos son "línea
+  # recta" por definición legal.
+  #
+  # El límite norte/este (art. 3.1.a, límite Sangani-Pichanaqui) NO se traza:
+  # es el mismo arco 120302/120303 que el INEI ya publica entre Perené y
+  # Pichanaqui, porque ese tramo no pertenece al padre que se corta. Los 3
+  # puntos de referencia que la memoria da para ese tramo caen a 0.2-21.0 m
+  # del arco existente (mismo orden de magnitud que el ruido de Santa Rosa),
+  # así que se reusa tal cual en vez de digitalizarlo de nuevo.
+  # =========================================================================
+  - nombre: SANGANI
+    ley: "32729"
+    # Aprobada por el Congreso el 2026-07-14, promulgada y publicada en El
+    # Peruano el 2026-07-15 (edición extraordinaria de Normas Legales).
+    fecha_creacion: "2026-07-15"
+    fecha_promulgacion: "2026-07-15"
+    pdf: ley-32729.pdf
+    capital: Santa Rosa             # art. 2, "el centro poblado de Santa Rosa"
+    departamento: "12"
+    provincia: "1203"
+    # null => se calcula con la regla max+1 de ubigeo.py. Chanchamayo tiene
+    # 120301-120306 sin huecos, así que la regla da 120307. Sin confirmar
+    # contra el SISCONCODE todavía (no se pudo consultar en esta corrida);
+    # el feature sale con ubigeo_provisional=true hasta que se verifique.
+    ubigeo: null
+
+    # ---------------------------------------------------------------------
+    # Padre único: Perené (120302). La memoria describe el perímetro completo
+    # de Sangani en dos tramos con dos vecinos distintos (art. 3.1.a y b),
+    # pero sólo el tramo con Perené parte el polígono del padre; el tramo con
+    # Pichanaqui ya es un arco existente entre Perené y Pichanaqui, así que
+    # Sangani sale íntegramente de Perené y Pichanaqui no se toca.
+    # ---------------------------------------------------------------------
+    padre: "120302"
+
+    confianza: aproximado
+    metodo: >-
+      Corte del polígono de Perené (120302) por la línea de 25 vértices que
+      el artículo 3.1.b de la Ley 32729 describe como límite Sangani-Perené,
+      del punto en el thalweg del río Pichanaqui (501 472 E, 8 784 021 N) a
+      la cumbre noroeste en la divisoria de aguas Azupizú/Perené (501 878 E,
+      8 811 664 N), que cierra exactamente donde empieza el tramo con
+      Pichanaqui. El límite norte y este (art. 3.1.a) no se traza: se reusa
+      el arco 120302/120303 que el INEI ya publica, porque ese tramo no
+      pertenece al padre que se corta.
+
+    corte:
+      crs: EPSG:32718               # art. 3.2: Zona 18 Sur, Datum WGS1984, UTM
+
+      # Los 25 vértices del art. 3.1.b, en el orden de la memoria (del
+      # thalweg del río Pichanaqui, rumbo oeste, hasta cerrar contra el
+      # tramo con Pichanaqui). Sólo 4 tramos son "línea recta" por definición
+      # legal: 1->2, 13->14, 15->16 y 17->18; el resto sigue accidentes
+      # naturales o viales que se unen aquí con rectas entre los puntos de
+      # referencia de la ley (ver advertencia).
+      puntos:
+        - [501472, 8784021]   # 1  thalweg río Pichanaqui (= fin del tramo con Pichanaqui)
+        - [499999, 8784021]   # 2  thalweg río Pucusani — tramo 1->2 en línea recta
+        - [498046, 8786198]   # 3  de referencia, estribación norte cerro s/n cota 1340
+        - [498446, 8787124]   # 4  desembocadura qda. s/n en qda. Quimarini
+        - [498593, 8788468]   # 5  eje vía Alto Pichanaqui-Alto San Juan × estribación cerro Picaflor
+        - [496430, 8790930]   # 6  eje vía Alto Pichanaqui-Alto San Juan × eje vía Alto San Juan-Picaflor
+        - [497680, 8791515]   # 7  eje vía Alto San Juan-Picaflor
+        - [497915, 8791434]   # 8  naciente qda. Savitari
+        - [499658, 8789718]   # 9  thalweg qda. Savitari
+        - [500460, 8791020]   # 10 de referencia, vaguada s/n
+        - [500195, 8792284]   # 11 divisoria de aguas qda. Savitari / qda. Quivinaqui
+        - [502299, 8791517]   # 12 cumbre cerro s/n cota 1376, divisoria Savitari/Quivinaqui
+        - [503677, 8795037]   # 13 divisoria qda. Quivinaqui / qda. Chirarini — tramo 13->14 en línea recta
+        - [503677, 8796560]   # 14 eje vía nacional 5-S
+        - [503120, 8796901]   # 15 eje vía nacional 5-S — tramo 15->16 en línea recta
+        - [504084, 8798758]   # 16 divisoria de aguas río Perené / qda. Yungul
+        - [501867, 8801108]   # 17 divisoria de aguas río Perené / qda. Yungul — tramo 17->18 en línea recta
+        - [500852, 8801108]   # 18 eje vía Puerto Ubiriqui-Inchatingari
+        - [500740, 8802171]   # 19 eje vía Puerto Ubiriqui-Inchatingari
+        - [500685, 8802473]   # 20 cumbre sur cerro s/n cota 821
+        - [500701, 8804206]   # 21 cumbre norte cerro s/n cota 821
+        - [500607, 8805412]   # 22 thalweg qda. Marachari
+        - [503140, 8805921]   # 23 naciente qda. Marachari
+        - [503440, 8806582]   # 24 de referencia, divisoria qda. Camonashari / qda. Ubiriqui
+        - [501878, 8811664]   # 25 cumbre NO, divisoria de aguas Azupizú/Perené (= inicio del tramo con Pichanaqui)
+
+      # Los dos extremos ya caen prácticamente sobre el borde de Perené (a
+      # 0.2 m y 21.0 m, el mismo orden de magnitud que el ruido de
+      # generalización medido en Santa Rosa): el corte no depende de cuánto
+      # se prolongue, sólo necesita cruzar limpiamente. 100 m alcanza de
+      # sobra en ambos extremos.
+      prolongar_inicio:
+        rumbo: continuar
+        max_m: 100
+      prolongar_final:
+        rumbo: continuar
+        max_m: 100
+
+      # Punto interior verificado de la pieza de Sangani (holgura 2 329 m al
+      # borde). No son las coordenadas de la capital Santa Rosa —la ley no
+      # las da—, sino un punto representativo del polígono resultante.
+      punto_interior: [-74.942692, -10.874145]   # lon, lat (EPSG:4326)
+
+      # ---------------------------------------------------------------------
+      # Tramo que la memoria describe (art. 3.1.a, límite Sangani-Pichanaqui)
+      # pero que NO se digitaliza: es el arco 120302/120303 que el INEI ya
+      # publica. Se guardan aquí sólo para medir la discrepancia y publicarla
+      # en qa/reporte.json.
+      # ---------------------------------------------------------------------
+      verificacion_tramos_reusados:
+        - nombre: Límite Sangani-Pichanaqui (art. 3.1.a)
+          contra: "120303"          # PICHANAQUI
+          tipo: coincidente
+          decision: >-
+            Se reusa el arco 120302/120303 que ya publica el INEI entre
+            Perené y Pichanaqui. Los 3 puntos que la memoria da para este
+            tramo ("de referencia" salvo el punto final) caen a 0.2-21.0 m
+            del arco existente, ruido de generalización cartográfica del
+            mismo orden que el medido en Santa Rosa (16-83 m). El resto del
+            tramo (thalwegs de las quebradas Camonashari y Zutziqui, y de
+            los ríos Perené y Pichanaqui) no trae coordenadas propias: la
+            memoria lo describe por los cursos de agua, que el arco del INEI
+            ya representa.
+          puntos:
+            - [501878, 8811664]   # cumbre NO, divisoria Azupizú/Perené (de referencia)
+            - [503469, 8811724]   # naciente qda. Camonashari (de referencia)
+            - [501472, 8784021]   # thalweg río Pichanaqui (punto exacto)
+
+    # Se copia tal cual a las propiedades del feature y al README.
+    advertencia: >-
+      Geometría APROXIMADA, no oficial. El corte contra Perené (art. 3.1.b)
+      sigue en su mayoría thalwegs de quebradas y ríos, vaguadas, divisorias
+      de aguas, estribaciones/líneas de cumbres y ejes de vía: de los 25
+      tramos, sólo 4 son "línea recta" por definición legal (1->2, 13->14,
+      15->16, 17->18). Los demás se trazan aquí uniendo con rectas los
+      puntos de referencia que da la memoria, porque este pipeline no tiene
+      fuente hidrológica ni modelo de elevación para seguir el accidente
+      real. Entre los puntos 499 999 E/8 784 021 N y 498 046 E/8 786 198 N
+      la propia ley nombra dos cumbres intermedias (cerro sin nombre cota
+      1340, sur y norte) sin darles coordenadas: la recta usada las salta
+      por completo. No usar para deslindes.
