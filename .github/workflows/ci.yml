@@ -27,26 +27,34 @@ jobs:
       - run: pip install -r requirements.txt
 
       # Los dos tests que necesitan fuentes/ (las capas crudas del INEI, ~80 MB,
-      # no versionadas) hacen skip solos; los otros 49 corren contra las capas
+      # no versionadas) hacen skip solos; los otros 50 corren contra las capas
       # publicadas.
       - name: Suite de validación
         run: python -m pytest -q
 
+      # Los conteos salen de config.yml, no escritos a mano: la cartografía y el
+      # registro oficial de ubigeos NO tienen por qué coincidir. Hoy no lo hacen
+      # —se publica Sangani (120307), que el SISCONCODE todavía no lista— y esa
+      # diferencia está declarada en config.yml, no escondida aquí.
       - name: Coherencia de lo publicado
         run: |
           python - <<'PY'
           import csv, json
           from pathlib import Path
 
-          esperado = {'departamento': 25, 'provincia': 196, 'distrito': 1892}
+          import yaml
+
+          cfg = yaml.safe_load(Path('config.yml').read_text(encoding='utf-8'))
+          publicado = cfg['conteos_esperados']     # lo que sale en salida/*.geojson
+          registro = cfg['ubigeos_oficiales']      # lo que lista el SISCONCODE
 
           conteo = {}
           for r in csv.DictReader(
                   open('salida/ubigeos_2025.csv', encoding='utf-8', newline='')):
               conteo[r['nivel']] = conteo.get(r['nivel'], 0) + 1
-          assert conteo == esperado, f'ubigeos_2025.csv: {conteo} != {esperado}'
+          assert conteo == registro, f'ubigeos_2025.csv: {conteo} != {registro}'
 
-          for nivel, n in esperado.items():
+          for nivel, n in publicado.items():
               feats = json.loads(Path(f'salida/{nivel}.geojson')
                                  .read_text(encoding='utf-8'))['features']
               assert len(feats) == n, f'{nivel}.geojson: {len(feats)} != {n}'
