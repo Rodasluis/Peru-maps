@@ -93,12 +93,12 @@
     {
       "area_nueva_km2": 223.2086,
       "area_padre_antes_km2": 1490.0236,
-      "area_padre_despues_km2": 1266.815,
+      "area_padre_despues_km2": 1266.8149,
       "crs_de_la_memoria": "EPSG:32718",
       "crs_del_corte": "EPSG:4326",
       "cruces_prolongacion_final": 1,
-      "deriva_area_de_la_provincia_m2": 0.004414,
-      "deriva_area_m2": 0.0018737316131591797,
+      "deriva_area_de_la_provincia_m2": 0.004412,
+      "deriva_area_m2": 0.0018796920776367188,
       "huecos_en_la_secuencia_de_la_provincia": [],
       "ley": "32729",
       "nombre": "SANGANI",
@@ -107,7 +107,7 @@
       "piezas": 2,
       "salida_inicio": {
         "m_desde_el_punto_de_la_memoria": 0.2,
-        "x": 501472.24,
+        "x": 501472.25,
         "y": 8784021.0
       },
       "tolerancia_area_m2": 1.0,
@@ -125,9 +125,9 @@
       ],
       "ubigeo": "120307",
       "ubigeo_calculado_por_la_regla": "120307",
-      "ubigeo_confirmado_oficialmente": null,
+      "ubigeo_confirmado_oficialmente": "120307",
       "ubigeo_forzado_en_el_registro": false,
-      "ubigeo_provisional": true,
+      "ubigeo_provisional": false,
       "vertices_de_la_linea": 914
     }
   ]

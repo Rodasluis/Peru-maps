@@ -14,10 +14,11 @@ import pytest
 import yaml
 
 RAIZ = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(RAIZ))
+sys.path.insert(0, str(RAIZ / 'src'))
 
 from ubigeo import (SECUENCIA_MAXIMA, UbigeoError,  # noqa: E402
-                    huecos_de_provincia, siguiente_ubigeo)
+                    cargar_registro_oficial, huecos_de_provincia, normalizar,
+                    siguiente_ubigeo)
 
 # Alto Amazonas, Loreto. Los códigos 03, 04, 07, 08 y 09 se retiraron cuando
 # esos distritos pasaron a Datem del Marañón (2005) y el INEI dejó los huecos
@@ -112,3 +113,74 @@ def test_contra_los_datos_reales():
     feats = json.loads(fuente.read_text(encoding='utf-8'))['features']
     todos = {f['properties']['ubigeo'] for f in feats}
     assert siguiente_ubigeo('1604', todos) == '160405'
+
+
+# ---------------------------------------------------------------------------
+# El registro oficial manda sobre la regla
+#
+# La regla es una predicción; el SISCONCODE es la autoridad. El build lo
+# consulta ANTES de estimar, leyéndolo del CSV ya versionado en salida/ para no
+# depender de la red. Estos tests cubren las dos ramas: cuando el listado está
+# y cuando no.
+# ---------------------------------------------------------------------------
+
+def _csv_oficial():
+    cfg = yaml.safe_load((RAIZ / 'config.yml').read_text(encoding='utf-8'))
+    return (RAIZ / cfg['rutas']['salida'] /
+            f"ubigeos_{cfg['sisconcode']['version']}.csv")
+
+
+def test_registro_oficial_sin_archivo_no_rompe_el_build(tmp_path):
+    """Sin listado se cae a la regla max+1, como antes de que existiera."""
+    assert cargar_registro_oficial(tmp_path / 'no_existe.csv') == {}
+
+
+def test_registro_oficial_indexa_por_provincia_y_nombre():
+    ruta = _csv_oficial()
+    if not ruta.exists():
+        pytest.skip(f'{ruta.name} no está; corra descargar_ubigeos.py')
+    oficiales = cargar_registro_oficial(ruta)
+    cfg = yaml.safe_load((RAIZ / 'config.yml').read_text(encoding='utf-8'))
+    assert len(oficiales) == cfg['ubigeos_oficiales']['distrito']
+    # El nombre se busca normalizado: el CSV trae "Sangani", el registro de
+    # leyes "SANGANI", y ninguno de los dos debe decidir el cruce.
+    assert oficiales[('1203', normalizar('Sangani'))] == '120307'
+
+
+def test_el_codigo_publicado_es_el_oficial_cuando_lo_hay():
+    """
+    Para cada distrito reconstruido, lo que se publica tiene que ser lo que
+    lista el SISCONCODE. Si el INEI asignara otro código, el build se para; este
+    test es la misma garantía vista desde la salida.
+    """
+    ruta = _csv_oficial()
+    if not ruta.exists():
+        pytest.skip(f'{ruta.name} no está; corra descargar_ubigeos.py')
+    oficiales = cargar_registro_oficial(ruta)
+    registro = yaml.safe_load(
+        (RAIZ / 'leyes' / 'registro.yml').read_text(encoding='utf-8'))
+    cfg = yaml.safe_load((RAIZ / 'config.yml').read_text(encoding='utf-8'))
+    publicados = {f['properties']['nombre']: f['properties']
+                  for f in json.loads(
+                      (RAIZ / cfg['rutas']['salida'] / 'distrito.geojson')
+                      .read_text(encoding='utf-8'))['features']}
+    for e in registro.get('distritos') or []:
+        oficial = oficiales.get((e['provincia'], normalizar(e['nombre'])))
+        if oficial is None:
+            continue        # todavía no registrado: sale provisional, y bien
+        props = publicados[e['nombre']]
+        assert props['ubigeo'] == oficial, e['nombre']
+        assert props['ubigeo_provisional'] is False, e['nombre']
+        assert props['ubigeo_fuente'], (
+            f'{e["nombre"]}: código oficial sin fuente citada')
+
+
+def test_registro_oficial_rechaza_dos_codigos_para_el_mismo_nombre(tmp_path):
+    """Si el cruce por nombre fuera ambiguo, se para en vez de elegir."""
+    csv_falso = tmp_path / 'ubigeos.csv'
+    csv_falso.write_text('''ubigeo,nivel,nombre,nombre_normalizado,ubigeo_provincia
+120307,distrito,Sangani,SANGANI,1203
+120308,distrito,Sangani,SANGANI,1203
+''', encoding='utf-8')
+    with pytest.raises(UbigeoError):
+        cargar_registro_oficial(csv_falso)

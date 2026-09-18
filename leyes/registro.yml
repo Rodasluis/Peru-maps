@@ -47,9 +47,6 @@ distritos:
     # El INEI ya lo registra en el SISCONCODE 2025, igual que a Santa Rosa,
     # aunque su WFS no publique el polígono.
     ubigeo_oficial_confirmado: "130112"
-    fuente_del_ubigeo: >-
-      INEI, Sistema de Consulta de Códigos Estandarizados (SISCONCODE),
-      versión de ubigeo 2025. Ver salida/ubigeos_2025.csv.
 
     # Padre único en la cartografía: todos los puntos con coordenadas de la
     # memoria caen dentro de El Porvenir. La ley menciona además límites con
@@ -183,9 +180,6 @@ distritos:
     # build compara: si dejaran de coincidir, para en seco.  Al estar
     # confirmado, el feature sale con ubigeo_provisional=false.
     ubigeo_oficial_confirmado: "160405"
-    fuente_del_ubigeo: >-
-      INEI, Sistema de Consulta de Códigos Estandarizados (SISCONCODE),
-      versión de ubigeo 2025. Ver salida/ubigeos_2025.csv.
 
     # ---------------------------------------------------------------------
     # Padre único.  La memoria (art. 3.1) describe el límite norte como
@@ -332,11 +326,15 @@ distritos:
     capital: Santa Rosa             # art. 2, "el centro poblado de Santa Rosa"
     departamento: "12"
     provincia: "1203"
-    # null => se calcula con la regla max+1 de ubigeo.py. Chanchamayo tiene
-    # 120301-120306 sin huecos, así que la regla da 120307. Sin confirmar
-    # contra el SISCONCODE todavía (no se pudo consultar en esta corrida);
-    # el feature sale con ubigeo_provisional=true hasta que se verifique.
+    # null => se calcula con la regla max+1 de src/ubigeo.py. Chanchamayo tenía
+    # 120301-120306 sin huecos, así que la regla da 120307.
     ubigeo: null
+
+    # Confirmado contra el SISCONCODE el 2026-09-18: su versión 2026
+    # (versionCategoriaPK 9-1) lista 1893 distritos e incluye "120307 Sangani"
+    # en 1203 Chanchamayo. La predicción de la regla max+1 acertó, así que el
+    # feature sale con ubigeo_provisional=false.
+    ubigeo_oficial_confirmado: "120307"
 
     # ---------------------------------------------------------------------
     # Padre único: Perené (120302). La memoria describe el perímetro completo

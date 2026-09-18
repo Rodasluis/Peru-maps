@@ -1,7 +1,7 @@
 # Límites administrativos del Perú
 
-Los 25 departamentos, 196 provincias y **1893 distritos** del Perú en GeoJSON y
-GeoPackage, construidos con un pipeline reproducible y validado.
+Los 25 departamentos, 196 provincias y **1893 distritos** del Perú en GeoJSON,
+construidos con un pipeline reproducible y validado.
 
 El WFS cartográfico del INEI todavía no publica polígono para tres distritos
 de creación reciente:
@@ -10,23 +10,20 @@ de creación reciente:
   N.º 32403**. El Censo 2025 ya lo cuenta aparte (4 459 habitantes): hay datos
   censales para un distrito sin polígono.
 - **Alto Trujillo** (`130112`), creado el 2022‑12‑15 por la **Ley N.º 31644**.
-- **Sangani** (`120307` previsto), creado el 2026‑07‑15 por la **Ley
+- **Sangani** (`120307`), creado el 2026‑07‑15 por la **Ley
   N.º 32729**, en la provincia de Chanchamayo, departamento de Junín, separado
-  de Perené. Su ubigeo todavía no se pudo confirmar contra el SISCONCODE en
-  esta corrida (ver limitación al final de esta sección).
+  de Perené.
 
 Los tres se reconstruyen **cortando el polígono de su distrito padre** y van
 marcados como derivados. No tienen la misma calidad: Santa Rosa reusa arcos que
 sí son el límite que describe su ley, mientras que Alto Trujillo y Sangani
 tienen tramos sustituidos o aproximados y van marcados `aproximado`.
 
-> **Limitación conocida.** `salida/ubigeos_2025.csv` todavía no incluye a
-> Sangani: su ley es posterior a la última versión de ubigeo del SISCONCODE que
-> se pudo descargar, así que `120307` es la predicción de la regla `max + 1` y
-> no un código confirmado. Va declarado en `ubigeos_provisionales`
-> (`config.yml`) y el feature sale con `ubigeo_provisional: true`; la suite lo
-> exige y avisará en cuanto el código quede registrado. Para cerrarlo, corra
-> `python descargar_ubigeos.py` con acceso al SISCONCODE.
+> **Los tres códigos están confirmados.** El SISCONCODE registra los 1893
+> distritos en su versión de ubigeo 2026, Sangani incluido. `120307` lo había
+> predicho la regla `max + 1` antes de que el INEI lo publicara, y al
+> contrastarlo coincidió: el feature sale con `ubigeo_provisional: false` y
+> `ubigeos_provisionales` (`config.yml`) queda vacío.
 
 > **Estos límites no son oficiales y son sólo para uso estadístico.** Sirven
 > para agregar y mapear indicadores por unidad administrativa. No constituyen
@@ -44,9 +41,15 @@ tienen tramos sustituidos o aproximados y van marcados `aproximado`.
 | `salida/provincia.geojson` | 196 | 18.2 MB | polígonos de las 196 provincias en GeoJSON, a resolución completa |
 | `salida/distrito.geojson` | **1893** | 41 MB | polígonos de los 1893 distritos en GeoJSON, a resolución completa |
 | `salida/*_simplificado.geojson` | 25 / 196 / 1893 | 1.8 / 4.1 / 11 MB | los mismos tres niveles simplificados a 100 m, para uso web; conservan la topología |
-| `salida/peru_limites.gpkg` | 3 capas | 45 MB | los tres niveles a resolución completa en un único GeoPackage, para SIG de escritorio |
-| `salida/ubigeos_2025.csv` | 2 113 filas | 0.3 MB | códigos y nombres oficiales de los tres niveles, con claves para cruzar por nombre — **todavía no incluye Sangani**, ver limitación arriba |
-| `salida/limites_lineas.geojson` | 5 608 arcos | 23 MB | los mismos límites como líneas, cada arco una sola vez, con los dos distritos que separa |
+| `salida/ubigeos_2026.csv` | 2 114 filas | 0.3 MB | códigos y nombres oficiales de los tres niveles, con claves para cruzar por nombre |
+
+**Dos capas derivadas más se generan pero no se versionan**, porque suman 68 MB
+y salen enteras de las anteriores: `salida/peru_limites.gpkg` (los tres niveles
+a resolución completa en un único GeoPackage, para SIG de escritorio) y
+`salida/limites_lineas.geojson` (los mismos límites como líneas, cada arco una
+sola vez, con los dos distritos que separa). Quien las necesite las reconstruye
+con `python src/publicar.py` y `python src/lineas.py`; ver
+[Reproducir el build](#reproducir-el-build).
 
 Y en [`ejemplos/`](ejemplos/), dos ejemplos ejecutables de consumo — un
 coropleto en Python y un mapa web con Leaflet. Ver
@@ -93,17 +96,29 @@ niveles superiores (se comprueba: la deriva de área de la provincia es de
 
 ## Ubigeos y nombres oficiales, cruzables con el Censo
 
-`descargar_ubigeos.py` extrae el listado **oficial** de códigos y nombres del
+`src/descargar_ubigeos.py` extrae el listado **oficial** de códigos y nombres del
 [SISCONCODE](https://webapp.inei.gob.pe:8443/sisconcode/main.htm) del INEI y lo
-deja en `salida/ubigeos_2025.csv` — 2 113 filas: **25 departamentos, 196
-provincias y 1 892 distritos**. (Sangani es tan reciente que esta corrida no
-pudo confirmar su código contra el SISCONCODE; ver limitación al inicio del
-README.)
+deja en `salida/ubigeos_2026.csv` — 2 114 filas: **25 departamentos, 196
+provincias y 1 893 distritos**, Sangani incluido.
 
 ```bash
-python descargar_ubigeos.py                 # versión de config.yml (2025)
-python descargar_ubigeos.py --version 2024  # otra versión de ubigeo
+python src/descargar_ubigeos.py                 # versión de config.yml (2026)
+python src/descargar_ubigeos.py --version 2025  # otra versión de ubigeo
 ```
+
+> **Cada versión se pide por su `versionCategoriaPK`, no por el año.** El
+> servicio acepta un parámetro `strVersion` pero **lo ignora**: los datos los
+> elige `versionCategoriaPK`. Pedir `strVersion=2026` con el pk de 2025
+> devuelve los de 2025 byte por byte, sin ningún aviso. Por eso las versiones
+> van declaradas en `config.yml` (`sisconcode.versiones`) y `--version` se
+> detiene si le piden una que no está en la tabla, en vez de escribir un CSV
+> con el nombre de una versión y el contenido de otra:
+>
+> | versión | `versionCategoriaPK` | distritos |
+> |---|---|---|
+> | 2024 | `7-1` | 1891 |
+> | 2025 | `8-1` | 1892 — entra Santa Rosa de Loreto (`160405`) |
+> | 2026 | `9-1` | 1893 — entra Sangani (`120307`) |
 
 ### Para cruzar con los tabulados del Censo 2025
 
@@ -125,7 +140,7 @@ columnas para cerrar ese cruce:
 > son únicos en el Perú: **100 nombres se repiten y afectan a 257 distritos**
 > (el 13.6 %). Hay 10 `DISTRITO SANTA ROSA`, 6 `SAN ANTONIO`, 5 `SANTA CRUZ`.
 > Un merge por nombre suelto multiplica filas en silencio. `clave_censo` lleva
-> departamento y provincia incorporados y es **única en los 1 892 distritos**,
+> departamento y provincia incorporados y es **única en los 1 893 distritos**,
 > las 196 provincias y los 25 departamentos.
 
 Al leer los tabulados, construya la misma clave arrastrando el departamento y
@@ -136,13 +151,9 @@ la provincia de las cabeceras del cuadro, normalice con la misma función
 
 | | departamentos | provincias | distritos |
 |---|---|---|---|
-| SISCONCODE (registro oficial) | 25 | 196 | **1 892**¹ |
+| SISCONCODE (registro oficial) | 25 | 196 | **1 893** |
 | WFS del INEI (cartografía) | 25 | 196 | **1 890** |
 | esta publicación | 25 | 196 | **1 893** |
-
-¹ Sin Sangani: el SISCONCODE no se pudo consultar en esta corrida (ver
-limitación al inicio del README), así que este número sigue siendo el de la
-última versión verificada.
 
 Al WFS le faltan **tres** polígonos; los tres se reconstruyen aquí:
 
@@ -150,7 +161,7 @@ Al WFS le faltan **tres** polígonos; los tres se reconstruyen aquí:
   `confianza: reconstruido`.
 - **`130112` Alto Trujillo** — Ley 31644. Su límite norte no procede de la ley:
   `confianza: aproximado`.
-- **`120307` Sangani** (previsto) — Ley 32729. La mayor parte del corte sigue
+- **`120307` Sangani** — Ley 32729. La mayor parte del corte sigue
   accidentes naturales o viales descritos con puntos de referencia:
   `confianza: aproximado`.
 
@@ -159,24 +170,30 @@ aparece un distrito oficial nuevo sin polígono.
 
 El hueco simétrico —un distrito que **ya se publica** pero que el registro
 oficial todavía no lista— se declara en `ubigeos_provisionales`, en el mismo
-`config.yml`. Hoy tiene una entrada, `120307` Sangani. La suite falla si
-aparece un ubigeo publicado fuera del registro que **no** esté declarado, si un
-declarado deja de publicarse, y también cuando el SISCONCODE por fin lo
-registra: entonces hay que quitarlo de la lista, fijar
+`config.yml`. Hoy está **vacío**: Sangani fue su única entrada y se cerró el
+2026‑09‑18, cuando el SISCONCODE publicó su versión de ubigeo 2026. La suite
+falla si aparece un ubigeo publicado fuera del registro que **no** esté
+declarado, si un declarado deja de publicarse, y también cuando el SISCONCODE
+por fin lo registra: entonces hay que quitarlo de la lista, fijar
 `ubigeo_oficial_confirmado` en `leyes/registro.yml` y subir el conteo de
-`ubigeos_oficiales`. Así el hueco es explícito y se cierra solo cuando toca, en
-vez de quedar como un test en rojo que se normaliza.
+`ubigeos_oficiales` —que es exactamente lo que pasó con `120307`—. Así el hueco
+es explícito y se cierra solo cuando toca, en vez de quedar como un test en
+rojo que se normaliza.
 
-**Para Santa Rosa de Loreto y Alto Trujillo, los códigos no son predicciones.**
-El SISCONCODE registra `160405 Santa Rosa de Loreto` y `130112 Alto Trujillo`,
-exactamente lo que calcula la regla `max + 1` en ambos casos. El build los
+**Ninguno de los tres códigos es una predicción.** El SISCONCODE registra
+`160405 Santa Rosa de Loreto`, `130112 Alto Trujillo` y `120307 Sangani`,
+exactamente lo que calcula la regla `max + 1` en los tres casos. El build los
 sigue calculando con la regla y los compara contra los oficiales: si dejaran de
-coincidir, se detiene. Por eso esos dos features salen con
+coincidir, se detiene. Por eso los tres features salen con
 `ubigeo_provisional: false` aunque su geometría sea derivada: el código y la
-geometría son dos cosas distintas. **`120307` Sangani sí es una predicción**
-todavía sin confirmar (`ubigeo_provisional: true`): la regla `max + 1` sobre
-Chanchamayo (`120301`-`120306`, sin huecos) da `120307`, pero esta corrida no
-pudo consultar el SISCONCODE para contrastarlo.
+geometría son dos cosas distintas.
+
+`120307` sí fue una predicción durante un tiempo. La regla `max + 1` sobre
+Chanchamayo (`120301`-`120306`, sin huecos) lo dedujo cuando la ley era más
+reciente que la última versión del SISCONCODE, y el feature salía marcado
+`ubigeo_provisional: true`. Al publicarse la versión 2026 se contrastó y
+coincidió; el mecanismo funcionó como debía, avisando en vez de dar el código
+por bueno en silencio.
 
 > Los tabulados del Censo no se descargan automáticamente: su catálogo
 > (`multiproyecto.inei.gob.pe/api/v1/catalogo`) devuelve **HTTP 500** y el
@@ -224,6 +241,36 @@ intersecciones que no puede reparar.
 > resolución completa. Viene en la cartografía del INEI. El nivel de distrito,
 > que es el que reconstruimos, no lo tiene a ningún intervalo.
 
+## Estructura del repositorio
+
+```
+config.yml      conteos, tolerancias y rutas — junto con leyes/registro.yml,
+                lo único que hay que tocar cuando se crea un distrito
+requirements.txt
+
+src/            el build, en orden de ejecución
+  descargar.py            capas crudas del WFS del INEI -> fuentes/
+  descargar_ubigeos.py    listado oficial del SISCONCODE -> salida/ubigeos_2026.csv
+  construir.py            arma los tres niveles -> salida/, con evidencia en qa/
+  publicar.py             variante simplificada (mapshaper) + GeoPackage
+  lineas.py               los límites como arcos, cada uno una sola vez
+  ubigeo.py               reglas de asignación de código (se importa, no se corre)
+  mapa_qa.py              PNG antes/después de cada provincia tocada
+  vigilar_inei.py         chequeo de mantenimiento contra el WFS y el SISCONCODE
+  auditar_limites_inei.py auditoría de las capas crudas
+
+leyes/          la fuente legal de cada reconstrucción
+  registro.yml            una entrada por distrito creado por ley
+  ley-*.pdf               el texto publicado en El Peruano
+  ubigeos_retirados.csv   blocklist de códigos que no se deben reutilizar
+
+salida/         lo que se publica y se versiona (GeoJSON y CSV)
+qa/             el antes/después de cada provincia tocada, como evidencia
+ejemplos/       cómo consumir las capas: Python, web y cruce con el Censo
+tests/          la suite de validación
+fuentes/        capas crudas del INEI; NO se versiona (~80 MB, reproducible)
+```
+
 ## Reproducir el build
 
 Requiere **Python 3.11** y **Node.js** (para mapshaper).
@@ -232,13 +279,13 @@ Requiere **Python 3.11** y **Node.js** (para mapshaper).
 pip install -r requirements.txt
 npm install -g mapshaper        # la simplificación lo necesita
 
-python descargar.py      # baja las 3 capas del INEI a fuentes/ (~80 MB)
-python descargar_ubigeos.py   # listado oficial de ubigeos y nombres (CSV)
-python construir.py      # arma los 3 niveles en salida/ + QA en qa/
-python publicar.py       # simplificada (mapshaper) + GeoPackage
-python lineas.py         # los límites como líneas (opcional)
-python -m pytest -q      # suite de validación (52 tests, ~3 min)
-python mapa_qa.py        # PNG antes/después de la provincia tocada
+python src/descargar.py      # baja las 3 capas del INEI a fuentes/ (~80 MB)
+python src/descargar_ubigeos.py   # listado oficial de ubigeos y nombres (CSV)
+python src/construir.py      # arma los 3 niveles en salida/ + QA en qa/
+python src/publicar.py       # simplificada (mapshaper) + GeoPackage
+python src/lineas.py         # los límites como líneas (opcional)
+python -m pytest -q      # suite de validación (56 tests, ~2 min)
+python src/mapa_qa.py        # PNG antes/después de la provincia tocada
 ```
 
 `fuentes/` no se versiona (pesa demasiado y es reproducible). Todo lo demás sí.
@@ -611,18 +658,36 @@ vértice noreste del distrito (`501 878 E, 8 811 664 N`) queda a 22 m del
 polígono de Puerto Bermúdez. Perené conserva sus 17.73 km de frontera con
 Puerto Bermúdez; Sangani no hereda ninguno.
 
-**Limitación de esta reconstrucción, aparte de la geometría.** El ubigeo
-`120307` es la predicción de la regla `max + 1` sobre Chanchamayo
-(`120301`-`120306`, sin huecos), y todavía no se ha contrastado contra el
-SISCONCODE. A diferencia de Santa Rosa y Alto Trujillo, Sangani sale con
-`ubigeo_provisional: true` y va declarado en `ubigeos_provisionales`
-(`config.yml`); ver [la sección de ubigeos](#el-registro-oficial-y-la-cartografía-no-coinciden).
+**El ubigeo, en cambio, ya no es una limitación.** `120307` salió de la regla
+`max + 1` sobre Chanchamayo (`120301`-`120306`, sin huecos) cuando el SISCONCODE
+todavía no listaba el distrito, y se contrastó contra su versión de ubigeo 2026:
+coincide. Igual que Santa Rosa y Alto Trujillo, Sangani sale con
+`ubigeo_provisional: false`; lo que sigue siendo aproximado es la geometría, no
+el código. Ver [la sección de ubigeos](#el-registro-oficial-y-la-cartografía-no-coinciden).
 
 ## Asignación de ubigeo
 
 ```
 nuevo = provincia + zfill(max(códigos distritales de la provincia) + 1, 2)
 ```
+
+**La regla sólo decide cuando el registro oficial todavía no.** Antes de
+estimar nada, el build busca el distrito en `salida/ubigeos_<version>.csv` —el
+listado del SISCONCODE que descarga `src/descargar_ubigeos.py`— y, si está, usa
+**su** código. El orden es:
+
+1. El `ubigeo:` escrito a mano en `leyes/registro.yml`, si lo hay.
+2. El código que el SISCONCODE lista para esa provincia y ese nombre.
+3. La regla `max + 1` — y entonces el feature sale con
+   `ubigeo_provisional: true`, porque es una predicción.
+
+Se lee del CSV ya versionado y **no** de una consulta en vivo: el build tiene
+que poder correrse sin red y dar siempre el mismo resultado. El único paso que
+sale a la red es `src/descargar_ubigeos.py`, que refresca ese CSV.
+
+La regla se calcula **igual** aunque el código ya sea oficial, y si los dos no
+coinciden el build se detiene: es lo único que avisaría de que el INEI asignó
+algo que la regla no predecía.
 
 **`max + 1`, nunca `count + 1`.** Las secuencias provinciales tienen huecos:
 cuando se crea una provincia, los distritos que se mudan conservan su código y
@@ -639,12 +704,13 @@ Para Santa Rosa la regla da **`160405`** (Mariscal Ramón Castilla es `1604`, co
 `160401` Ramón Castilla, `160402` Pebas, `160403` Yavarí, `160404` San Pablo).
 Se calcula contra los datos, no está escrito a mano.
 
-**Es una predicción de lo que asignará el INEI, no una autoridad.** Va marcado
-`ubigeo_provisional: true` en las propiedades, se puede fijar a mano en
-`leyes/registro.yml`, y `vigilar_inei.py` lo compara con el código oficial en
-cuanto el INEI publique el distrito.
+**Es una predicción de lo que asignará el INEI, no una autoridad.** Mientras no
+se confirme va marcada `ubigeo_provisional: true` en las propiedades; se puede
+fijar a mano en `leyes/registro.yml`, y `src/vigilar_inei.py` la compara con el
+código oficial en cuanto el INEI publique el distrito. Los tres distritos
+reconstruidos hasta hoy pasaron por ahí y la regla acertó en los tres.
 
-Guards implementados (`ubigeo.py`), que fallan en vez de emitir un código
+Guards implementados (`src/ubigeo.py`), que fallan en vez de emitir un código
 dudoso: la secuencia no pasa de `99`; el código no está en uso; el código no
 está en la blocklist de retirados. Ver la limitación sobre esa blocklist más
 abajo.
@@ -678,15 +744,22 @@ atributos del distrito, y no son estables entre descargas.
 
 ## Suite de validación
 
-52 tests que rompen el build ante cualquier violación. Las capas se construyen
+56 tests que rompen el build ante cualquier violación. Las capas se construyen
 en local y su resultado se versiona; en CI se valida ese resultado, sin
 descargar nada del INEI.
+
+7 de ellos —los de la capa de arcos— salen como `skipped` salvo que se haya
+corrido `python src/lineas.py`, porque `salida/limites_lineas.geojson` no se
+versiona. No es un fallo: es la capa que se genera a demanda.
 
 - **conteos** 1893 / 196 / 25, leídos de `config.yml`, no literales
 - **ubigeos** únicos y bien formados (6 / 4 / 2 dígitos, con cero a la izquierda)
 - **ubigeos provisionales** declarados en `config.yml` y marcados como tales en
   el feature; falla tanto si aparece uno sin declarar como si el SISCONCODE ya
   registró alguno de los declarados
+- **registro oficial** por encima de la regla: lo publicado para un distrito
+  reconstruido tiene que ser el código que lista el SISCONCODE, con su fuente
+  citada; y el cruce por nombre se rechaza si resultara ambiguo
 - **jerarquía de códigos** cierra en ambos sentidos entre los tres niveles
 - **nombres** de provincia y departamento resueltos contra sus capas
 - **procedencia** en todo feature; un solo predicado separa lo oficial
@@ -760,7 +833,7 @@ subirla cada vez que se añade un distrito, y un hueco de verdad —que sería m
 de veces mayor— sigue rompiendo el build.
 
 **Arcos cortos mal clasificados como `exterior` en los nodos del corte.**
-`lineas.py` empareja dos distritos cuando sus bordes **coinciden vértice a
+`src/lineas.py` empareja dos distritos cuando sus bordes **coinciden vértice a
 vértice**. En los pocos metros donde la línea de corte cruza el borde del padre,
 `split` reconstruye el anillo y la rejilla de publicación (1.1 cm) desplaza esos
 vértices lo justo para que dejen de coincidir con los del vecino, que no se
@@ -788,7 +861,7 @@ No hay maquinaria para provincias ni departamentos nuevos; si eso pasara, habrí
 que extender el pipeline, no sólo el registro.
 
 **La blocklist de códigos retirados está vacía.** El guard está implementado y
-cableado a `ubigeos_retirados.csv`, pero sin las tablas históricas del INEI que
+cableado a `leyes/ubigeos_retirados.csv`, pero sin las tablas históricas del INEI que
 lo alimenten. Es una desviación deliberada: `max + 1` **nunca cae en un hueco**
 (los huecos están por debajo del máximo por definición), así que cubre por
 completo el caso `160207` de Alto Amazonas. Queda expuesto sólo si se retiró un
@@ -819,7 +892,7 @@ El procedimiento:
    `max + 1`.
    - `punto_interior` debe caer claramente dentro del distrito nuevo; la
      capital suele servir. El build falla si no cae en exactamente una pieza.
-   - Si el INEI ya asignó el código —se comprueba con `descargar_ubigeos.py`—
+   - Si el INEI ya asignó el código —se comprueba con `src/descargar_ubigeos.py`—
      va en `ubigeo_oficial_confirmado`. La regla lo sigue calculando y el build
      compara ambos: si difieren, se detiene.
    - `confianza` es `reconstruido` sólo si los arcos reusados **son** el límite
@@ -832,7 +905,7 @@ El procedimiento:
 3. Se actualiza el conteo de `distrito` en `config.yml`, y se retira el
    distrito de `sin_cartografia` si estaba declarado ahí.
 4. Se reconstruye y valida:
-   `python construir.py && python publicar.py && python lineas.py && python -m pytest -q`
+   `python src/construir.py && python src/publicar.py && python src/lineas.py && python -m pytest -q`
 5. Se revisa `qa/<provincia>_antes_despues.png` y el diff de `salida/` antes de
    versionar el resultado.
 
@@ -846,7 +919,7 @@ El build sí se detiene por sí solo ante geometría dudosa: falla si la línea 
 corte no cruza el borde, si el punto interior cae en 0 o 2 piezas, si el área no
 se conserva, o si la prolongación cruza el borde más de una vez.
 
-`vigilar_inei.py` consulta el WFS y el SISCONCODE y avisa cuando el INEI publica
+`src/vigilar_inei.py` consulta el WFS y el SISCONCODE y avisa cuando el INEI publica
 finalmente un distrito suplido, incluso si el ubigeo oficial difiere del
 predicho. Esa es la señal para retirar la entrada del registro: el polígono
 oficial reemplaza a la reconstrucción.

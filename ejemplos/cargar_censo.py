@@ -14,7 +14,7 @@ disposición. Por eso `--hoja` está por defecto en INDDEM06.
 
 Los tabulados **no traen ubigeo**: identifican las unidades por nombre y la
 jerarquía va implícita en el ORDEN de las filas. El cruce se hace por clave
-jerárquica (`departamento|provincia|distrito`) contra `salida/ubigeos_2025.csv`,
+jerárquica (`departamento|provincia|distrito`) contra `salida/ubigeos_2026.csv`,
 nunca por nombre suelto: hay 100 nombres de distrito repetidos que afectan a 257
 distritos.
 
@@ -80,7 +80,7 @@ import unicodedata
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(RAIZ))
+sys.path.insert(0, str(RAIZ / 'src'))
 
 from descargar_ubigeos import normalizar  # noqa: E402
 
@@ -140,11 +140,11 @@ def descargar(destino: Path) -> Path:
 
 
 def cargar_catalogo(version: str) -> dict:
-    """(nivel, clave_censo) -> ubigeo. Sale de descargar_ubigeos.py."""
+    """(nivel, clave_censo) -> ubigeo. Sale de src/descargar_ubigeos.py."""
     ruta = RAIZ / 'salida' / f'ubigeos_{version}.csv'
     if not ruta.exists():
         raise SystemExit(
-            f'falta {rel(ruta)}; corra primero descargar_ubigeos.py')
+            f'falta {rel(ruta)}; corra primero src/descargar_ubigeos.py')
     with open(ruta, encoding='utf-8', newline='') as f:
         return {(r['nivel'], r['clave_censo']): r['ubigeo']
                 for r in csv.DictReader(f)}

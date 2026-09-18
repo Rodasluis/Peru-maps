@@ -1,7 +1,7 @@
 name: validación
 
 # El CI no descarga nada del INEI. Las capas se construyen en local con
-# descargar.py / construir.py / publicar.py y el resultado se versiona en
+# src/descargar.py / src/construir.py / src/publicar.py y el resultado se versiona en
 # salida/, que es lo que consume quien usa el repositorio. Aquí sólo se valida
 # ese resultado.
 #
@@ -48,11 +48,16 @@ jobs:
           publicado = cfg['conteos_esperados']     # lo que sale en salida/*.geojson
           registro = cfg['ubigeos_oficiales']      # lo que lista el SISCONCODE
 
+          # El nombre del CSV lleva la versión de ubigeo, que también sale de
+          # config.yml: cuando el SISCONCODE publica una versión nueva cambia el
+          # archivo, y este paso no debe quedarse apuntando al anterior.
+          csv_ubigeos = f"salida/ubigeos_{cfg['sisconcode']['version']}.csv"
+
           conteo = {}
           for r in csv.DictReader(
-                  open('salida/ubigeos_2025.csv', encoding='utf-8', newline='')):
+                  open(csv_ubigeos, encoding='utf-8', newline='')):
               conteo[r['nivel']] = conteo.get(r['nivel'], 0) + 1
-          assert conteo == registro, f'ubigeos_2025.csv: {conteo} != {registro}'
+          assert conteo == registro, f'{csv_ubigeos}: {conteo} != {registro}'
 
           for nivel, n in publicado.items():
               feats = json.loads(Path(f'salida/{nivel}.geojson')

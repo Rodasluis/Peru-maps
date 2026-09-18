@@ -34,7 +34,7 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(RAIZ))
+sys.path.insert(0, str(RAIZ / 'src'))
 
 NIVELES = (('departamento', 'Departamentos', 0.6),
            ('provincia', 'Provincias', 0.35),
@@ -125,7 +125,7 @@ def main() -> int:
     for eje, (nivel, titulo, grosor) in zip(ejes, niveles):
         ruta = RAIZ / 'salida' / f'{nivel}{sufijo}.geojson'
         if not ruta.exists():
-            raise SystemExit(f'falta {ruta.name}; corra construir.py y publicar.py')
+            raise SystemExit(f'falta {ruta.name}; corra src/construir.py y src/publicar.py')
         gdf = gpd.read_file(ruta)
         capas[nivel] = gdf
 

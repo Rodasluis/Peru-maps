@@ -21,7 +21,7 @@ from shapely.geometry import shape
 from shapely.ops import unary_union
 
 RAIZ = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(RAIZ))
+sys.path.insert(0, str(RAIZ / 'src'))
 
 from construir import NIVELES, reproyectar  # noqa: E402
 

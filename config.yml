@@ -9,16 +9,16 @@ conteos_esperados:
   provincia: 196
   distrito: 1893        # 1890 publicados por el INEI + 3 reconstruidos
 
-# Conteos del registro OFICIAL de ubigeos (SISCONCODE), que no son los mismos
-# que los de la cartografía. El SISCONCODE todavía no se pudo consultar para
-# esta corrida (Sangani es de creación muy reciente), así que este conteo
-# sigue reflejando la última versión verificada; su WFS de todos modos sólo
-# publica polígono para 1890: faltan Santa Rosa de Loreto (160405), Alto
-# Trujillo (130112) y ahora Sangani (120307 previsto). Ver README.
+# Conteos del registro OFICIAL de ubigeos (SISCONCODE). Desde la versión 2026
+# coinciden con los de la cartografía: el SISCONCODE ya registra los 1893,
+# incluido Sangani (120307), confirmado el 2026-09-18. Lo que sigue sin
+# coincidir es el WFS, que sólo publica polígono para 1890: faltan Santa Rosa
+# de Loreto (160405), Alto Trujillo (130112) y Sangani (120307), que este
+# repositorio reconstruye. Ver README.
 ubigeos_oficiales:
   departamento: 25
   provincia: 196
-  distrito: 1892
+  distrito: 1893
 
 # Distritos que el INEI reconoce oficialmente pero para los que no publica
 # polígono, y que este repo TAMPOCO reconstruye todavía porque falta registrar
@@ -28,7 +28,7 @@ ubigeos_oficiales:
 # suite falla si aparece otro que no esté aquí, y también si alguno de estos ya
 # tiene polígono (entonces hay que quitarlo de la lista).
 sin_cartografia:
-  # Vacío: los 1892 distritos oficiales tienen ya polígono. Alto Trujillo
+  # Vacío: los 1893 distritos oficiales tienen ya polígono. Alto Trujillo
   # (130112) se reconstruyó con la Ley 31644, aunque de forma aproximada
   # —su límite norte no procede de la ley—; ver leyes/registro.yml.
   distritos: {}
@@ -36,27 +36,33 @@ sin_cartografia:
 # El hueco simétrico al anterior: distritos que este repo YA publica pero que el
 # registro oficial (SISCONCODE) todavía no lista, porque su ley es más reciente
 # que la última versión de ubigeo publicada. Su código sale de la regla max+1 de
-# ubigeo.py y por eso el feature va con ubigeo_provisional: true.
+# src/ubigeo.py y por eso el feature va con ubigeo_provisional: true.
 #
 # Se declaran uno a uno, con el mismo criterio que sin_cartografia: la suite
 # falla si aparece un ubigeo publicado fuera del registro oficial que NO esté
 # aquí, y también si alguno de estos ya aparece en el registro (entonces hay que
 # quitarlo de esta lista, poner ubigeo_oficial_confirmado en leyes/registro.yml
 # y subir el conteo de ubigeos_oficiales).
-#
-# Para resolverlos hace falta correr descargar_ubigeos.py con acceso al
-# SISCONCODE del INEI.
 ubigeos_provisionales:
-  distritos:
-    "120307": >-
-      SANGANI, creado por la Ley 32729 (publicada el 2026-07-15) en la
-      provincia de Chanchamayo. La regla max+1 sobre 120301-120306, que no
-      tiene huecos, da 120307. No verificado contra el SISCONCODE.
+  # Vacío: Sangani (120307) era el único y el SISCONCODE ya lo registra en su
+  # versión 2026. La regla max+1 había predicho exactamente ese código; queda
+  # confirmado en leyes/registro.yml y el feature sale con
+  # ubigeo_provisional: false.
+  distritos: {}
 
 sisconcode:
   url: https://webapp.inei.gob.pe:8443/sisconcode/ubigeo/listaBusquedaUbigeoPorUbicacionGeografica.htm
-  version: "2025"
-  version_categoria_pk: "8-1"
+  version: "2026"
+  # Cada versión de ubigeo tiene su propio versionCategoriaPK, y es ESE
+  # parámetro —no strVersion— el que elige los datos que devuelve el servicio.
+  # Verificado el 2026-09-18: pedir strVersion=2026 con el pk de 2025 devuelve
+  # los datos de 2025, byte por byte, sin ningún aviso. Por eso la versión se
+  # resuelve contra esta tabla y `--version` falla si no está declarada, en vez
+  # de escribir un CSV con el nombre de una versión y el contenido de otra.
+  versiones:
+    "2024": "7-1"       # 1891 distritos
+    "2025": "8-1"       # 1892: + Santa Rosa de Loreto (160405)
+    "2026": "9-1"       # 1893: + Sangani (120307)
 
 rutas:
   fuentes: fuentes

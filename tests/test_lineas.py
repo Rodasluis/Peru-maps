@@ -19,7 +19,7 @@ from shapely.geometry import shape
 from shapely.ops import polygonize, unary_union
 
 RAIZ = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(RAIZ))
+sys.path.insert(0, str(RAIZ / 'src'))
 
 from construir import reproyectar  # noqa: E402
 

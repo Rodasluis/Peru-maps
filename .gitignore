@@ -1,11 +1,12 @@
-# Las capas crudas del INEI se bajan con descargar.py; pesan ~80 MB.
+# Las capas crudas del INEI se bajan con src/descargar.py; pesan ~80 MB.
 fuentes/
-# Carpeta de la auditoría original, reemplazada por fuentes/.
+# Destino por defecto de src/auditar_limites_inei.py, que reaudita las capas
+# crudas; se regenera al correrlo.
 limites_inei/
 
-# El Excel del censo se vuelve a bajar con `cargar_censo.py` sin argumentos;
-# el CSV ya cruzado (ejemplos/datos/censo.csv) sí se versiona, para que los
-# ejemplos funcionen nada más clonar.
+# El Excel del censo se vuelve a bajar con `ejemplos/cargar_censo.py` sin
+# argumentos; el CSV ya cruzado (ejemplos/datos/censo.csv) sí se versiona,
+# para que los ejemplos funcionen nada más clonar.
 ejemplos/datos/*.xlsx
 
 __pycache__/
@@ -15,3 +16,9 @@ __pycache__/
 
 # Configuración local del entorno de desarrollo.
 .claude/
+
+# Capas derivadas que SÍ se generan (src/publicar.py y src/lineas.py) pero que
+# no se versionan: suman 68 MB y se reconstruyen a partir de las que sí están
+# en salida/. Quien las necesite las genera; ver README.
+salida/peru_limites.gpkg
+salida/limites_lineas.geojson
