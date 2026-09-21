@@ -21,6 +21,9 @@
     --s1:#cde2fb; --s2:#9ec5f4; --s3:#6da7ec;
     --s4:#3987e5; --s5:#1c5cab; --s6:#0d366b;
     --sin-dato:#f0efec;
+    /* El foco es un trazo, no un relleno: un ámbar que no se puede confundir
+       con ningún paso de la rampa azul. */
+    --foco:#b45309;
   }
   /* En oscuro la rampa se recorre al revés: en una escala secuencial el
      extremo de valor bajo tiene que fundirse con la superficie, y aquí la
@@ -35,6 +38,7 @@
       --sin-dato:#383835;
       --s1:#0d366b; --s2:#1c5cab; --s3:#256abf;
       --s4:#3987e5; --s5:#6da7ec; --s6:#b7d3f6;
+      --foco:#fbbf24;
     }
   }
   :root[data-theme="dark"] {
@@ -46,6 +50,7 @@
     --sin-dato:#383835;
     --s1:#0d366b; --s2:#1c5cab; --s3:#256abf;
     --s4:#3987e5; --s5:#6da7ec; --s6:#b7d3f6;
+    --foco:#fbbf24;
   }
 
   * { box-sizing:border-box; }
@@ -75,6 +80,18 @@
     background:var(--s5); color:#fff; border-color:transparent;
   }
   .barra .sep { flex:1; }
+
+  /* Los desplegables son dependientes: cada uno acota al siguiente. Se
+     deshabilitan en vez de esconderse, para que el encadenado se vea. */
+  .barra select {
+    font:inherit; font-size:.88rem; padding:6px 10px; max-width:230px;
+    background:var(--surface-1); color:var(--ink-1);
+    border:1px solid var(--ring); border-radius:7px; cursor:pointer;
+  }
+  .barra select:hover:not(:disabled) { border-color:var(--hairline); }
+  .barra select:disabled { color:var(--muted); cursor:not-allowed; opacity:.65; }
+  .barra select[data-activo="si"] { border-color:var(--foco); }
+  #btn-limpiar[hidden] { display:none; }
 
   /* Small multiples: los tres niveles a la vez. Con un nivel seleccionado el
      panel pasa a una columna y el mapa crece. */
@@ -127,6 +144,12 @@
        background:var(--surface-1); }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
   .scroll { max-height:460px; overflow:auto; }
+  /* Visualmente oculto, legible por lector de pantalla: el grupo lleva un
+     rótulo común, pero cada select necesita su propio nombre accesible. */
+  .vo {
+    position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+  }
   [hidden] { display:none !important; }
 </style>
 </head>
@@ -134,7 +157,7 @@
 <div class="envoltura">
   <h1>Perú — población por nivel administrativo</h1>
   <p class="sub">
-    Censos Nacionales 2025 · 25 departamentos, 196 provincias y 1892 distritos.
+    Censos Nacionales 2025 · <span id="resumen">cargando…</span>
   </p>
   <p class="aviso" id="aviso">Cargando…</p>
 
@@ -159,17 +182,36 @@
     </div>
   </div>
 
+  <div class="barra" id="barra-filtro">
+    <div class="grupo">
+      <span class="etq">Ubicación</span>
+      <label class="vo" for="sel-departamento">Departamento</label>
+      <select id="sel-departamento" disabled>
+        <option value="">Todo el Perú</option>
+      </select>
+      <label class="vo" for="sel-provincia">Provincia</label>
+      <select id="sel-provincia" disabled>
+        <option value="">Todas las provincias</option>
+      </select>
+      <label class="vo" for="sel-distrito">Distrito</label>
+      <select id="sel-distrito" disabled>
+        <option value="">Todos los distritos</option>
+      </select>
+      <button id="btn-limpiar" hidden>Limpiar</button>
+    </div>
+  </div>
+
   <div class="rejilla" id="rejilla">
     <section class="panel" data-panel="departamento">
-      <h2>Departamentos <small>25</small></h2>
+      <h2>Departamentos <small id="n-departamento">—</small></h2>
       <div class="lienzo" id="m-departamento"></div>
     </section>
     <section class="panel" data-panel="provincia">
-      <h2>Provincias <small>196</small></h2>
+      <h2>Provincias <small id="n-provincia">—</small></h2>
       <div class="lienzo" id="m-provincia"></div>
     </section>
     <section class="panel" data-panel="distrito">
-      <h2>Distritos <small>1892</small></h2>
+      <h2>Distritos <small id="n-distrito">—</small></h2>
       <div class="lienzo" id="m-distrito"></div>
     </section>
   </div>
@@ -185,19 +227,50 @@ const NIVELES = ['departamento', 'provincia', 'distrito'];
 const GROSOR = { departamento: 1.0, provincia: 0.5, distrito: 0.18 };
 const RUTA = n => `../salida/${n}_simplificado.geojson`;
 
-let RAMPA, SIN_DATO, HAIRLINE;
+let RAMPA, SIN_DATO, HAIRLINE, FOCO;
 function leerTokens() {
   const css = getComputedStyle(document.documentElement);
   RAMPA = ['--s1','--s2','--s3','--s4','--s5','--s6']
     .map(v => css.getPropertyValue(v).trim());
   SIN_DATO = css.getPropertyValue('--sin-dato').trim();
   HAIRLINE = css.getPropertyValue('--hairline').trim();
+  FOCO = css.getPropertyValue('--foco').trim();
 }
 leerTokens();
 
 const geo = {};            // nivel -> GeoJSON
 const mapas = {};          // nivel -> { mapa, capa, leyenda, cortes, vals }
 let indicador = null, nivel = 'todos', medida = 'total';
+
+// El foco es un ubigeo: '' es todo el país, '12' Junín, '1203' Chanchamayo y
+// '120307' Sangani. Como los códigos son jerárquicos por prefijo, un solo
+// string basta para los tres desplegables y para los tres mapas a la vez.
+let foco = '';
+
+// Un feature entra en foco si comparte prefijo con lo seleccionado. Así, al
+// elegir Sangani, el panel de distritos enfoca Sangani, el de provincias
+// enfoca Chanchamayo y el de departamentos, Junín.
+const enFoco = u => !foco || u.startsWith(foco) || foco.startsWith(u);
+
+const PLURAL = { departamento:'departamentos', provincia:'provincias',
+                 distrito:'distritos' };
+
+// Índice jerárquico para los desplegables. Sale de la capa de distritos, que
+// ya trae el nombre de su provincia y su departamento: no hace falta cruzar
+// nada ni cargar un cuarto archivo.
+const jerarquia = { dep:new Map(), prov:new Map(), dist:new Map() };
+function indexar() {
+  for (const f of geo.distrito?.features ?? []) {
+    const p = f.properties;
+    if (p.ubigeo_departamento)
+      jerarquia.dep.set(p.ubigeo_departamento,
+                        p.nombre_departamento ?? p.ubigeo_departamento);
+    if (p.ubigeo_provincia)
+      jerarquia.prov.set(p.ubigeo_provincia,
+                         p.nombre_provincia ?? p.ubigeo_provincia);
+    jerarquia.dist.set(p.ubigeo, p.nombre);
+  }
+}
 
 // Cuantiles: la población está muy sesgada (Lima Metropolitana contra
 // distritos amazónicos) y con intervalos iguales casi todo caería en la clase
@@ -218,6 +291,8 @@ function color(x, cortes) {
 }
 const fmt = x => x == null ? '—'
   : x.toLocaleString('es-PE', { maximumFractionDigits: 0 });
+const nombreFoco = () => jerarquia.dist.get(foco) ?? jerarquia.prov.get(foco)
+                      ?? jerarquia.dep.get(foco) ?? '';
 const etiquetaMedida = () =>
   indicador?.medidas?.[medida]?.etiqueta ?? 'Valor';
 
@@ -237,6 +312,16 @@ async function arrancar() {
       })));
     NIVELES.forEach((n, i) => { geo[n] = cargados[i]; });
 
+    // Los conteos salen de los datos, no escritos a mano: cuando se cree el
+    // próximo distrito esta página no se queda diciendo el número viejo.
+    indexar();
+    NIVELES.forEach(n => {
+      document.getElementById(`n-${n}`).textContent = geo[n].features.length;
+    });
+    document.getElementById('resumen').textContent =
+      NIVELES.map(n => `${geo[n].features.length} ${PLURAL[n]}`).join(', ') + '.';
+    sincronizarFiltro();
+
     NIVELES.forEach(dibujar);
     aplicarNivel();
     aviso.textContent = indicador
@@ -253,6 +338,21 @@ function valoresDe(n) {
   return indicador?.medidas?.[medida]?.valores?.[n] ?? {};
 }
 
+// Un solo sitio decide el aspecto de un polígono: lo usan el pintado inicial,
+// el cambio de foco y el mouseout, que si no restauraría un grosor que el foco
+// acaba de cambiar.
+function estilo(n, f) {
+  const st = mapas[n], u = f.properties.ubigeo, dentro = enFoco(u);
+  return {
+    fillColor: color(st.vals[u] ?? null, st.cortes),
+    // Lo que queda fuera del foco se atenúa, no se esconde: el contexto
+    // geográfico es justamente lo que hace legible el recorte.
+    fillOpacity: dentro ? 0.9 : 0.14,
+    color: (foco && dentro) ? FOCO : HAIRLINE,
+    weight: (foco && dentro) ? Math.max(GROSOR[n], 1.6) : GROSOR[n],
+  };
+}
+
 function dibujar(n) {
   const st = mapas[n] ?? (mapas[n] = {});
   st.vals = valoresDe(n);
@@ -266,12 +366,7 @@ function dibujar(n) {
   st.mapa = mapa;
 
   st.capa = L.geoJSON(geo[n], {
-    style: f => ({
-      fillColor: color(st.vals[f.properties.ubigeo] ?? null, st.cortes),
-      fillOpacity: 0.9,
-      color: HAIRLINE,                 // borde hairline, recesivo
-      weight: GROSOR[n],
-    }),
+    style: f => estilo(n, f),
     onEachFeature: (f, lyr) => {
       const p = f.properties, v = st.vals[p.ubigeo] ?? null;
       const jer = [p.nombre_provincia, p.nombre_departamento]
@@ -283,8 +378,11 @@ function dibujar(n) {
         + (p.fuente === 'derivado' ? `<em>derivado — ${p.confianza}</em>` : ''),
         { className: 'pt', sticky: true });
       // El área de acierto es el polígono entero, no un blanco de 8 px.
-      lyr.on('mouseover', () => lyr.setStyle({ weight: GROSOR[n] + 1.5 }));
-      lyr.on('mouseout',  () => lyr.setStyle({ weight: GROSOR[n] }));
+      lyr.on('mouseover', () =>
+        lyr.setStyle({ weight: estilo(n, f).weight + 1.5 }));
+      lyr.on('mouseout',  () => lyr.setStyle(estilo(n, f)));
+      // Clic para enfocar: el mapa es otra forma de usar los desplegables.
+      lyr.on('click', () => fijarFoco(p.ubigeo));
     },
   }).addTo(mapa);
   mapa.fitBounds(st.capa.getBounds(), { padding: [8, 8] });
@@ -311,7 +409,8 @@ function pintarTabla() {
   const n = nivel === 'todos' ? 'distrito' : nivel;
   if (!geo[n]) return;
   const vals = valoresDe(n);
-  const filas = geo[n].features.map(f => ({
+  const filas = geo[n].features.filter(f => enFoco(f.properties.ubigeo))
+    .map(f => ({
     u: f.properties.ubigeo, n: f.properties.nombre,
     p: f.properties.nombre_provincia ?? '',
     d: f.properties.nombre_departamento ?? '',
@@ -321,7 +420,9 @@ function pintarTabla() {
 
   document.getElementById('tabla').innerHTML =
     `<table><caption>${n} · ${filas.length} filas · ${etiquetaMedida()}`
-    + ' (mayor a menor)</caption>'
+    + ' (mayor a menor)'
+    + (foco ? ` · filtrado por ${nombreFoco()} (${foco})` : '')
+    + '</caption>'
     + '<thead><tr><th>Ubigeo</th><th>Nombre</th><th>Provincia</th>'
     + '<th>Departamento</th><th>Fuente</th><th class="num">Población</th></tr>'
     + '</thead><tbody>'
@@ -329,6 +430,76 @@ function pintarTabla() {
         + `<td>${r.d}</td><td>${r.o}</td>`
         + `<td class="num">${fmt(r.v)}</td></tr>`).join('')
     + '</tbody></table>';
+}
+
+// --- Desplegables dependientes -------------------------------------------
+// Cada uno acota al siguiente. No hay estado propio: los tres leen del mismo
+// `foco`, así que el mapa, la tabla y los selects no pueden desincronizarse.
+
+const porNombre = (a, b) => String(a[1]).localeCompare(String(b[1]), 'es');
+
+function opciones(sel, pares, vacio) {
+  sel.innerHTML = `<option value="">${vacio}</option>`
+    + pares.map(([u, n]) => `<option value="${u}">${n}</option>`).join('');
+}
+
+function sincronizarFiltro() {
+  const sD = document.getElementById('sel-departamento');
+  const sP = document.getElementById('sel-provincia');
+  const sI = document.getElementById('sel-distrito');
+  const dep = foco.slice(0, 2), prov = foco.slice(0, 4);
+
+  opciones(sD, [...jerarquia.dep].sort(porNombre), 'Todo el Perú');
+  sD.value = dep;
+  sD.disabled = jerarquia.dep.size === 0;
+
+  const provs = dep
+    ? [...jerarquia.prov].filter(([u]) => u.startsWith(dep)).sort(porNombre)
+    : [];
+  opciones(sP, provs, dep ? 'Todas las provincias' : 'Elija un departamento');
+  sP.value = foco.length >= 4 ? prov : '';
+  sP.disabled = provs.length === 0;
+
+  const dists = foco.length >= 4
+    ? [...jerarquia.dist].filter(([u]) => u.startsWith(prov)).sort(porNombre)
+    : [];
+  opciones(sI, dists,
+           foco.length >= 4 ? 'Todos los distritos' : 'Elija una provincia');
+  sI.value = foco.length === 6 ? foco : '';
+  sI.disabled = dists.length === 0;
+
+  for (const s of [sD, sP, sI]) s.dataset.activo = s.value ? 'si' : 'no';
+  document.getElementById('btn-limpiar').hidden = !foco;
+}
+
+function fijarFoco(u) {
+  foco = u || '';
+  sincronizarFiltro();
+  aplicarFoco();
+  pintarTabla();
+}
+
+// Repinta los tres paneles según el foco y encuadra cada uno en SU nivel: con
+// Sangani seleccionado, el mapa de distritos va a Sangani y el de
+// departamentos a Junín. Se restila siempre; sólo se encuadra lo visible,
+// porque Leaflet no tiene medidas válidas de un panel oculto.
+function aplicarFoco() {
+  NIVELES.forEach(n => {
+    const st = mapas[n];
+    if (!st?.capa) return;
+    let caja = null;
+    st.capa.eachLayer(lyr => {
+      lyr.setStyle(estilo(n, lyr.feature));
+      if (!foco || !enFoco(lyr.feature.properties.ubigeo)) return;
+      const b = lyr.getBounds();
+      caja = caja ? caja.extend(b)
+                  : L.latLngBounds(b.getSouthWest(), b.getNorthEast());
+    });
+    if (document.getElementById(`m-${n}`).offsetParent === null) return;
+    st.mapa.invalidateSize();
+    st.mapa.fitBounds(caja?.isValid() ? caja : st.capa.getBounds(),
+                      { padding: foco ? [26, 26] : [8, 8] });
+  });
 }
 
 function aplicarNivel() {
@@ -339,14 +510,9 @@ function aplicarNivel() {
       nivel !== 'todos' && nivel !== n;
   });
   // Leaflet necesita saber que su contenedor cambió de tamaño, y sólo tiene
-  // medidas válidas si el panel está visible.
-  requestAnimationFrame(() => NIVELES.forEach(n => {
-    const st = mapas[n];
-    if (!st?.mapa || document.getElementById(`m-${n}`).offsetParent === null)
-      return;
-    st.mapa.invalidateSize();
-    st.mapa.fitBounds(st.capa.getBounds(), { padding: [8, 8] });
-  }));
+  // medidas válidas si el panel está visible: por eso el encuadre espera al
+  // siguiente frame. De restilar y encuadrar se ocupa aplicarFoco.
+  requestAnimationFrame(aplicarFoco);
   pintarTabla();
 }
 
@@ -372,6 +538,17 @@ document.querySelectorAll('[data-medida]').forEach(b => {
     aplicarNivel();
   });
 });
+
+// Al vaciar un desplegable se sube un escalón en la jerarquía en vez de
+// saltar a todo el país: es lo que el usuario espera de un encadenado.
+document.getElementById('sel-departamento').addEventListener('change',
+  e => fijarFoco(e.target.value));
+document.getElementById('sel-provincia').addEventListener('change',
+  e => fijarFoco(e.target.value || foco.slice(0, 2)));
+document.getElementById('sel-distrito').addEventListener('change',
+  e => fijarFoco(e.target.value || foco.slice(0, 4)));
+document.getElementById('btn-limpiar').addEventListener('click',
+  () => fijarFoco(''));
 
 document.getElementById('btn-tabla').addEventListener('click', e => {
   const ver = e.target.getAttribute('aria-pressed') !== 'true';

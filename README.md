@@ -304,6 +304,14 @@ Filtra por **nivel** (los tres a la vez, o uno a pantalla completa) y por
 **población** (total, hombres, mujeres), con tooltip, leyenda por nivel, vista
 de tabla y tema claro/oscuro.
 
+Y por **ubicación**, con tres desplegables encadenados —departamento →
+provincia → distrito— para ir a uno concreto. Como los ubigeos son jerárquicos
+por prefijo, una sola selección gobierna los tres paneles a la vez: al elegir
+Sangani, el mapa de distritos encuadra Sangani, el de provincias Chanchamayo y
+el de departamentos Junín. Lo que queda fuera no se esconde, se atenúa, para no
+perder el contexto geográfico. También se puede hacer clic en cualquier
+polígono para enfocarlo, y la tabla sigue el mismo recorte.
+
 [![Población del Censo 2025 por departamento, provincia y distrito](ejemplos/mapa_python.png)](https://rodasluis.github.io/Peru-maps/ejemplos/mapa_web.html)
 
 Para ejecutarlo en local, `fetch()` sobre `file://` está bloqueado por el
